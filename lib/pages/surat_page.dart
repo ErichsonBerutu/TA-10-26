@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import '../widgets/app_bottom_nav.dart';
-import 'beranda_page.dart';
+import '../services/pengajuan_service.dart' as pengajuan_service;
+import 'beranda_page.dart' show BerandaPage;
 import 'pengaduan_page.dart';
 import 'pengumuman_page.dart';
-import 'profile_page.dart';
 
 // ============================================================
 //  MODEL
@@ -385,25 +384,7 @@ class _SuratPageState extends State<SuratPage> {
         MaterialPageRoute(builder: (_) => const PengumumanPage()),
       );
     } else if (item == AppNavItem.profil) {
-      final authService = AuthService();
-      if (authService.isLoggedIn && authService.currentUser != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProfilePage(
-              user: authService.currentUser!,
-              authService: authService,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silakan login terlebih dahulu'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      // TODO: Import ProfilePage dan AuthService sesuai kebutuhan
     }
   }
 
@@ -711,10 +692,29 @@ class _FormSuratPageState extends State<FormSuratPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isSubmitting = false);
 
+    // Kumpulkan semua nilai dari form
+    final Map<String, String> formData = {};
+    for (final entry in _controllers.entries) {
+      final val = entry.value.text.trim();
+      if (val.isNotEmpty) formData[entry.key] = val;
+    }
+    for (final entry in _dropdownValues.entries) {
+      if (entry.value != null) formData[entry.key] = entry.value!;
+    }
+
+    // Simpan pengajuan ke service
+    // TODO: Ganti dengan API call ke Golang backend
+    pengajuan_service.PengajuanService().tambahPengajuan(
+      jenisSurat: widget.surat.nama,
+      emoji     : widget.surat.emoji,
+      data      : formData,
+    );
+
+    await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
+
+    setState(() => _isSubmitting = false);
     _showSuccessDialog();
   }
 

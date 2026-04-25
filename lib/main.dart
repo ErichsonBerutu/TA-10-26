@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-import 'pages/beranda_page.dart';
-import 'pages/surat_page.dart';
-import 'services/pengajuan_service.dart';
-import 'models/pengajuan_model.dart';
-import 'pages/pdf_preview_page.dart';
-import 'pages/pengaduan_page.dart';
 import 'package:flutter/services.dart';
 import 'pages/splash_page.dart';
-import 'pages/pengumuman_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
