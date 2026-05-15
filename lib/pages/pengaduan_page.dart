@@ -97,6 +97,11 @@ class _PengaduanPageState extends State<PengaduanPage> {
   void initState() {
     super.initState();
     _service.addListener(_refresh);
+    _loadPengaduanServer();
+  }
+
+  Future<void> _loadPengaduanServer() async {
+    await _service.muatRiwayatPengaduan();
   }
 
   @override
@@ -933,7 +938,7 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(milliseconds: 600));
 
-    _service.tambahPengaduan(
+    final success = await _service.kirimPengaduan(
       judul: _judulCtrl.text.trim(),
       deskripsi: _deskCtrl.text.trim(),
       jenis: widget.jenisData.jenis,
@@ -942,7 +947,12 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
-    _showSuccessDialog();
+
+    if (success) {
+      _showSuccessDialog();
+    } else {
+      _showError('Gagal mengirim pengaduan. Periksa koneksi atau login Anda.');
+    }
   }
 
   void _showSuccessDialog() {

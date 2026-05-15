@@ -1,48 +1,72 @@
 class User {
+  final int id;
   final String nik;
   final String nama;
-  final String email;
-  final String noHp;
-  final String alamat;
-  final String? fotoUrl;
+  final String tempatLahir;
   final DateTime? tanggalLahir;
-  final String? jenisKelamin;
-  final DateTime loginAt;
+  final String alamat;
+  final String email;
+  final String role;
 
-  const User({
+  User({
+    required this.id,
     required this.nik,
     required this.nama,
-    required this.email,
-    required this.noHp,
+    required this.tempatLahir,
+    required this.tanggalLahir,
     required this.alamat,
-    this.fotoUrl,
-    this.tanggalLahir,
-    this.jenisKelamin,
-    required this.loginAt,
+    required this.email,
+    required this.role,
   });
 
-  // Untuk update profile
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] ?? 0,
+      nik: json['nik'] ?? '',
+      nama: json['nama'] ?? '',
+      tempatLahir: json['tempat_lahir'] ?? '',
+      tanggalLahir: json['tanggal_lahir'] != null
+          ? DateTime.tryParse(json['tanggal_lahir'])
+          : null,
+      alamat: json['alamat'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nik': nik,
+      'nama': nama,
+      'tempat_lahir': tempatLahir,
+      'tanggal_lahir':
+          tanggalLahir?.toIso8601String(),
+      'alamat': alamat,
+      'email': email,
+      'role': role,
+    };
+  }
+
   User copyWith({
+    int? id,
     String? nik,
     String? nama,
-    String? email,
-    String? noHp,
-    String? alamat,
-    String? fotoUrl,
+    String? tempatLahir,
     DateTime? tanggalLahir,
-    String? jenisKelamin,
-    DateTime? loginAt,
+    String? alamat,
+    String? email,
+    String? role,
   }) {
     return User(
+      id: id ?? this.id,
       nik: nik ?? this.nik,
       nama: nama ?? this.nama,
-      email: email ?? this.email,
-      noHp: noHp ?? this.noHp,
-      alamat: alamat ?? this.alamat,
-      fotoUrl: fotoUrl ?? this.fotoUrl,
+      tempatLahir: tempatLahir ?? this.tempatLahir,
       tanggalLahir: tanggalLahir ?? this.tanggalLahir,
-      jenisKelamin: jenisKelamin ?? this.jenisKelamin,
-      loginAt: loginAt ?? this.loginAt,
+      alamat: alamat ?? this.alamat,
+      email: email ?? this.email,
+      role: role ?? this.role,
     );
   }
 }
