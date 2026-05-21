@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/pengajuan_model.dart';
+import '../services/pdf_service.dart';
+import '../services/auth_service.dart';
+import '../api_config/api_config.dart';
+
 
 // ============================================================
 //  HALAMAN PDF PREVIEW & DOWNLOAD
@@ -415,11 +420,75 @@ class PdfPreviewPage extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
+        // Tombol Buka Versi Resmi Server (Online)
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              try {
+                final token = AuthService().token;
+                if (token == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Sesi login tidak valid. Silakan login kembali.')),
+                  );
+                  return;
+                }
+                
+                final rawUrl = "${ApiConfig.baseUrl}/surat/${pengajuan.id}/view?token=$token";
+                final uri = Uri.parse(rawUrl);
+                
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Tidak dapat membuka tautan: $rawUrl')),
+                  );
+                }
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal membuka dokumen online: $e')),
+                );
+              }
+            },
+            icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+            label: const Text(
+              'Buka Versi Resmi Server (Online)',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1e3a8a),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
         // Tombol Print/Simpan PDF
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () => _showDownloadInfo(context),
+            onPressed: () async {
+              try {
+                if (pengajuan.status == StatusPengajuan.disetujui) {
+                  await PdfService().downloadSurat(context, pengajuan);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Surat belum disetujui untuk dicetak')),
+                  );
+                }
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal mencetak: $e')),
+                );
+              }
+            },
             icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
             label: const Text(
               'Simpan / Cetak PDF',
@@ -455,75 +524,6 @@ class PdfPreviewPage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  void _showDownloadInfo(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🖨️', style: TextStyle(fontSize: 40)),
-              const SizedBox(height: 12),
-              const Text(
-                'Cetak / Simpan Surat',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1e293b)),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Untuk menyimpan atau mencetak surat ini, integrasikan package "printing" dan "pdf" dari pub.dev ke project Anda.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748b),
-                    height: 1.5),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFf8fafc),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFe2e8f0)),
-                ),
-                child: const Text(
-                  'dependencies:\n  pdf: ^3.10.8\n  printing: ^5.12.0',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: Color(0xFF374151),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563eb),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Mengerti',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

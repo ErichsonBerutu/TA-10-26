@@ -5,6 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api_config/api_config.dart';
 import '../models/user_model.dart';
 
+class LoginResult {
+  final bool success;
+  final String message;
+
+  LoginResult(this.success, this.message);
+}
+
 class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
 
@@ -42,7 +49,7 @@ class AuthService extends ChangeNotifier {
   // LOGIN
   // ==================================================
 
-  Future<bool> login(String nik, String password) async {
+  Future<LoginResult> login(String nik, String password) async {
     try {
       final url = Uri.parse("$baseUrl/login");
 
@@ -58,45 +65,67 @@ class AuthService extends ChangeNotifier {
         }),
       );
 
-if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
 
-        final user = data["user"];
-        _token = data["token"];
+        // Pastikan status dari backend adalah 'success'
+        if (responseData['status'] == 'success') {
+          
+          // MENGAMBIL DATA DENGAN JALUR JSON YANG BENAR
+          final user = responseData["data"]["user"];
+          _token = responseData["data"]["token"];
 
-        _currentUser = User(
-          id: user["id"],
-          nik: user["nik"] ?? "",
-          nama: user["name"] ?? "",
-          email: user["email"] ?? "",
-          role: user["role"] ?? "user",
-          alamat: user["alamat"] ?? "",
-          tempatLahir: user["tempat_lahir"] ?? "",
-          tanggalLahir: DateTime.tryParse(
-                user["tanggal_lahir"] ?? "",
-              ) ??
-              DateTime.now(),
-        );
+          _currentUser = User(
+            id: user["id"],
+            nik: user["nik"] ?? "",
+            nama: user["name"] ?? "", // Menyesuaikan dengan 'name' dari Laravel
+            email: user["email"] ?? "",
+            role: user["role"] ?? "user",
+            alamat: user["alamat"] ?? "",
+            tempatLahir: user["tempat_lahir"] ?? "",
+            tanggalLahir: DateTime.tryParse(
+                  user["tanggal_lahir"] ?? "",
+                ) ??
+                DateTime.now(),
+          );
 
-        _isLoggedIn = true;
+          _isLoggedIn = true;
 
-        // Simpan ke SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', _token!);
-        await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
+          // Simpan ke SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', _token!);
+          await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
 
-        notifyListeners();
-        return true;
+          notifyListeners();
+          return LoginResult(true, 'Login berhasil');
+        } else {
+          // Menangkap jika statusnya 'error' (meskipun HTTP 200 OK)
+          return LoginResult(false, responseData['message'] ?? 'Login gagal');
+        }
       }
 
-      return false;
+      if (response.statusCode == 401) {
+        final responseData = jsonDecode(response.body);
+        return LoginResult(false, responseData['message'] ?? 'NIK / Password salah');
+      }
+
+      if (response.statusCode == 403) {
+        final responseData = jsonDecode(response.body);
+        return LoginResult(false, responseData['message'] ?? 'Akses ditolak');
+      }
+
+      if (response.statusCode == 422) {
+        return LoginResult(false, 'Data login tidak valid');
+      }
+
+      return LoginResult(false, 'Login gagal. Status ${response.statusCode}');
     } catch (e) {
       debugPrint("LOGIN ERROR : $e");
-      return false;
+      return LoginResult(false, 'Koneksi terputus. Periksa internet atau server lokal Anda.');
     }
   }
 
-// ==================================================
+  // ==================================================
   // LOGOUT
   // ==================================================
 

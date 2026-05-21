@@ -1,4 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../api_config/api_config.dart';
+import '../services/auth_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
 import 'beranda_page.dart' show BerandaPage;
@@ -12,6 +18,7 @@ import 'pengumuman_page.dart';
 class JenisSurat {
   final String id;
   final String nama;
+  final String? serverName;
   final String emoji;
   final String deskripsi;
   final Color color;
@@ -20,11 +27,14 @@ class JenisSurat {
   const JenisSurat({
     required this.id,
     required this.nama,
+    this.serverName,
     required this.emoji,
     required this.deskripsi,
     required this.color,
     required this.fields,
   });
+
+  String get effectiveServerName => serverName ?? nama;
 }
 
 class FieldSurat {
@@ -667,6 +677,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, String?> _dropdownValues = {};
   bool _isSubmitting = false;
+  String? _jenisSuratLookupError;
 
   @override
   void initState() {
@@ -703,19 +714,178 @@ class _FormSuratPageState extends State<FormSuratPage> {
       if (entry.value != null) formData[entry.key] = entry.value!;
     }
 
-    // Simpan pengajuan ke service
-    // TODO: Ganti dengan API call ke Golang backend
+    final authService = AuthService();
+    final token = authService.token;
+    final currentRole = authService.currentUser?.role;
+
+    if (token == null) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _showErrorDialog(
+        'Anda harus login terlebih dahulu agar pengajuan dapat dikirim.',
+      );
+      return;
+    }
+
+    if (currentRole != 'masyarakat') {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _showErrorDialog(
+        'Akun saat ini bukan masyarakat. Login sebagai akun masyarakat untuk mengajukan surat.',
+      );
+      return;
+    }
+
+    final jenisSuratId = await _resolveJenisSuratId(
+      widget.surat.effectiveServerName,
+    );
+    if (jenisSuratId == null) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      final message = _jenisSuratLookupError != null
+          ? 'Tidak dapat menemukan jenis surat di server. $_jenisSuratLookupError'
+          : 'Tidak dapat menemukan jenis surat di server. Pastikan backend aktif dan jenis surat telah tersedia.';
+      _showErrorDialog(message);
+      return;
+    }
+
+    final success = await _submitSuratToApi(jenisSuratId, formData, token);
+    if (!mounted) return;
+
+    if (!success) {
+      setState(() => _isSubmitting = false);
+      _showErrorDialog(
+        'Gagal mengirim pengajuan surat. Periksa koneksi internet atau konfigurasi API.',
+      );
+      return;
+    }
+
+    // Simpan juga ke state lokal agar antarmuka riwayat tetap responsif.
     pengajuan_service.PengajuanService().tambahPengajuan(
       jenisSurat: widget.surat.nama,
-      emoji     : widget.surat.emoji,
-      data      : formData,
+      emoji: widget.surat.emoji,
+      data: formData,
     );
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
 
     setState(() => _isSubmitting = false);
     _showSuccessDialog();
+  }
+
+  Future<int?> _resolveJenisSuratId(String jenisSuratNama) async {
+    _jenisSuratLookupError = null;
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/jenis-surat');
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${AuthService().token}',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        final bodyText = response.body;
+        _jenisSuratLookupError =
+            'Status ${response.statusCode}. Pastikan token valid dan role masyarakat. Response: $bodyText';
+        debugPrint(
+          'Jenis surat lookup failed: ${response.statusCode} ${response.body}',
+        );
+        return null;
+      }
+
+      final body = jsonDecode(response.body);
+      if (body is! Map || body['status'] != true) {
+        _jenisSuratLookupError =
+            'Server merespons data tidak valid. Response: ${response.body}';
+        debugPrint('Jenis surat lookup invalid response: $body');
+        return null;
+      }
+
+      final jenisList = body['data'] as List<dynamic>?;
+      if (jenisList == null) return null;
+
+      final expectedName = jenisSuratNama.trim().toLowerCase();
+      int? fallbackId;
+      String? fallbackName;
+
+      for (final item in jenisList) {
+        if (item is Map<String, dynamic>) {
+          final nama = (item['nama_surat'] ?? '')
+              .toString()
+              .trim()
+              .toLowerCase();
+          if (nama == expectedName) {
+            return item['id_jenis_surat'] as int?;
+          }
+          if (fallbackId == null &&
+              (nama.contains(expectedName) || expectedName.contains(nama))) {
+            fallbackId = item['id_jenis_surat'] as int?;
+            fallbackName = nama;
+          }
+        }
+      }
+
+      if (fallbackId != null) {
+        debugPrint(
+          'Jenis surat fallback match: "$expectedName" -> "$fallbackName"',
+        );
+        return fallbackId;
+      }
+
+      _jenisSuratLookupError =
+          'Nama surat "${widget.surat.nama}" tidak ditemukan di daftar jenis surat server.';
+    } catch (e) {
+      _jenisSuratLookupError = 'Gagal menghubungi server: $e';
+      debugPrint('Resolve jenis surat error: $e');
+    }
+    return null;
+  }
+
+  Future<bool> _submitSuratToApi(
+    int jenisSuratId,
+    Map<String, String> formData,
+    String token,
+  ) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/surat');
+      final response = await http.post(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'id_jenis_surat': jenisSuratId,
+          'data_form': formData,
+        }),
+      );
+
+      debugPrint(
+        'Submit surat response: ${response.statusCode} ${response.body}',
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      debugPrint('Submit surat error: $e');
+      return false;
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Kesalahan'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSuccessDialog() {

@@ -2,11 +2,10 @@
 //
 // Halaman untuk warga melihat riwayat pengajuan surat.
 // - Status: Menunggu / Disetujui / Ditolak
-// - Jika disetujui → bisa langsung download PDF
+// - Jika disetujui → bisa buka surat dari server (cetak/simpan)
 
 import 'package:flutter/material.dart';
 import '../services/pengajuan_service.dart';
-import '../services/pdf_service.dart';
 import '../models/pengajuan_model.dart';
 import 'pdf_preview_page.dart';
 
@@ -19,15 +18,17 @@ class RiwayatPage extends StatefulWidget {
 
 class _RiwayatPageState extends State<RiwayatPage>
     with SingleTickerProviderStateMixin {
-  final _service    = PengajuanService();
-  final _pdfService = PdfService();
+  final _service = PengajuanService();
   late TabController _tabCtrl;
-  bool _isDownloading = false;
+  bool _isOpening = false;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 4, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _service.muatDaftarPengajuan();
+    });
   }
 
   @override
@@ -150,40 +151,53 @@ class _RiwayatPageState extends State<RiwayatPage>
 
   Widget _buildList(List<PengajuanSurat> list) {
     if (list.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      return RefreshIndicator(
+        onRefresh: () => _service.muatDaftarPengajuan(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFe2e8f0),
-                borderRadius: BorderRadius.circular(20),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 80, height: 80,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFe2e8f0),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Center(
+                      child: Text('📭', style: TextStyle(fontSize: 38)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Belum ada pengajuan',
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF64748b)),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Ajukan surat baru melalui menu Surat',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF94a3b8)),
+                  ),
+                ],
               ),
-              child: const Center(
-                child: Text('📭', style: TextStyle(fontSize: 38)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Belum ada pengajuan',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF64748b)),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Ajukan surat baru melalui menu Surat',
-              style: TextStyle(fontSize: 12, color: Color(0xFF94a3b8)),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      itemCount: list.length,
-      itemBuilder: (_, i) => _buildCard(list[i]),
+    return RefreshIndicator(
+      onRefresh: () => _service.muatDaftarPengajuan(),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        itemCount: list.length,
+        itemBuilder: (_, i) => _buildCard(list[i]),
+      ),
     );
   }
 
@@ -336,54 +350,30 @@ class _RiwayatPageState extends State<RiwayatPage>
           if (p.status == StatusPengajuan.disetujui)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => PdfPreviewPage(pengajuan: p)),
-                      ),
-                      icon: const Icon(Icons.visibility_rounded, size: 15),
-                      label: const Text('Preview', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF2563eb),
-                        side: const BorderSide(color: Color(0xFF2563eb)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isOpening ? null : () => _bukaLetterDariServer(p),
+                  icon: _isOpening
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.open_in_browser_rounded, size: 18),
+                  label: Text(
+                    _isOpening ? 'Membuka...' : '🖨️  Lihat & Cetak Surat',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      onPressed: _isDownloading ? null : () => _download(p),
-                      icon: _isDownloading
-                          ? const SizedBox(
-                              width: 14, height: 14,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Icon(Icons.download_rounded, size: 15),
-                      label: Text(
-                        _isDownloading ? 'Memproses...' : 'Download PDF',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16a34a),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16a34a),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
-                ],
+                ),
               ),
             ),
 
@@ -416,24 +406,15 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // ── Download PDF ───────────────────────────────────────
+  // ── Buka Surat dari Server ─────────────────────────────
 
-  Future<void> _download(PengajuanSurat p) async {
-    setState(() => _isDownloading = true);
-    try {
-      await _pdfService.downloadSurat(context, p);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengunduh PDF: $e'),
-            backgroundColor: const Color(0xFFef4444),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isDownloading = false);
-    }
+  Future<void> _bukaLetterDariServer(PengajuanSurat p) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfPreviewPage(pengajuan: p),
+      ),
+    );
   }
 
   // ── Helper ─────────────────────────────────────────────

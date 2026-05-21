@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../api_config/api_config.dart';
 import '../models/pengajuan_model.dart';
+import './auth_service.dart';
 
 // ============================================================
 //  SERVICE — State Management Pengajuan & Notifikasi
-//  Gunakan dengan InheritedWidget atau Provider
+//  Terintegrasi dengan Backend Laravel
 // ============================================================
 
 class PengajuanService extends ChangeNotifier {
@@ -22,8 +26,41 @@ class PengajuanService extends ChangeNotifier {
   int get jumlahBelumDibaca =>
       _notifikasi.where((n) => !n.sudahDibaca).length;
 
-  // ── Tambah Pengajuan Baru ──────────────────────────────
+  // ── Sinkronisasi dengan Backend (API Fetch) ─────────────
+  Future<List<PengajuanSurat>> muatDaftarPengajuan() async {
+    final token = AuthService().token;
+    if (token == null) return _daftarPengajuan;
 
+    try {
+      final url = Uri.parse("${ApiConfig.baseUrl}/surat");
+      final response = await http.get(
+        url,
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData['status'] == true && responseData['data'] != null) {
+          final List rawList = responseData['data'];
+          
+          _daftarPengajuan.clear();
+          for (var item in rawList) {
+            _daftarPengajuan.add(PengajuanSurat.fromJson(item));
+          }
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint("ERROR muatDaftarPengajuan: $e");
+    }
+    return _daftarPengajuan;
+  }
+
+  // ── Tambah Pengajuan Baru ──────────────────────────────
+  // (Tetap dipertahankan untuk kompatibilitas offline responsif)
   PengajuanSurat tambahPengajuan({
     required String jenisSurat,
     required String emoji,
@@ -42,7 +79,6 @@ class PengajuanService extends ChangeNotifier {
   }
 
   // ── Admin: Approve ─────────────────────────────────────
-
   void approvePengajuan(String id) {
     final index = _daftarPengajuan.indexWhere((p) => p.id == id);
     if (index == -1) return;
@@ -63,7 +99,6 @@ class PengajuanService extends ChangeNotifier {
   }
 
   // ── Admin: Tolak ───────────────────────────────────────
-
   void tolakPengajuan(String id, String alasan) {
     final index = _daftarPengajuan.indexWhere((p) => p.id == id);
     if (index == -1) return;
@@ -85,7 +120,6 @@ class PengajuanService extends ChangeNotifier {
   }
 
   // ── Tandai Notifikasi Sudah Dibaca ─────────────────────
-
   void bacaNotifikasi(String id) {
     final index = _notifikasi.indexWhere((n) => n.id == id);
     if (index == -1) return;
@@ -101,7 +135,6 @@ class PengajuanService extends ChangeNotifier {
   }
 
   // ── Private: Tambah Notifikasi ─────────────────────────
-
   void _tambahNotifikasi({
     required String judul,
     required String pesan,
@@ -122,7 +155,6 @@ class PengajuanService extends ChangeNotifier {
   }
 
   // ── Helper ─────────────────────────────────────────────
-
   PengajuanSurat? getPengajuanById(String id) {
     try {
       return _daftarPengajuan.firstWhere((p) => p.id == id);

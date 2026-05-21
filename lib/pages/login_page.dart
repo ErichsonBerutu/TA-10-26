@@ -93,48 +93,37 @@ class _LoginPageState extends State<LoginPage>
 
     setState(() => _isLoading = true);
 
-    try {
-      final authService = AuthService();
-      final success = await authService.login(
-        _nikCtrl.text.trim(),
-        _passCtrl.text.trim(),
-      );
+    final authService = AuthService();
+    final result = await authService.login(
+      _nikCtrl.text.trim(),
+      _passCtrl.text.trim(),
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (success) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_login', true);
-        await prefs.setString('nik', _nikCtrl.text.trim());
+    final isConnectionError = result.message.contains('Koneksi terputus');
+    final snackColor = result.success
+        ? Colors.green
+        : isConnectionError
+            ? Colors.orange
+            : Colors.red;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login berhasil'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: snackColor,
+      ),
+    );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const BerandaPage(),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login gagal'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
+    if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_login', true);
+      await prefs.setString('nik', _nikCtrl.text.trim());
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak dapat terhubung ke server'),
-          backgroundColor: Colors.orange,
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BerandaPage(),
         ),
       );
     }

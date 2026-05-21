@@ -8,11 +8,15 @@
 //   printing: ^5.12.0
 
 import 'dart:typed_data';
-import 'package:flutter/material.dart' show BuildContext;
+import 'package:flutter/material.dart' show BuildContext, debugPrint;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:http/http.dart' as http;
+import '../api_config/api_config.dart';
+import './auth_service.dart';
 import '../models/pengajuan_model.dart';
+import '../models/pengaduan_model.dart';
 
 class PdfService {
   static final PdfService _instance = PdfService._internal();
@@ -341,6 +345,172 @@ class PdfService {
     await Printing.layoutPdf(
       onLayout : (_) async => bytes,
       name     : '${pengajuan.jenisSurat} - ${pengajuan.id}',
+      format   : PdfPageFormat.a4,
+    );
+  }
+
+  // ── DOWNLOAD OFFICIAL SIGNED PDF FROM SERVER ─────────
+  Future<void> downloadOfficialPdfFromServer(
+    BuildContext context,
+    String pengajuanId,
+    String filename,
+  ) async {
+    final token = AuthService().token;
+    if (token == null) {
+      debugPrint("downloadOfficialPdfFromServer: token is null");
+      return;
+    }
+
+    try {
+      final url = Uri.parse("${ApiConfig.baseUrl}/surat/$pengajuanId/download");
+      final response = await http.get(
+        url,
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        await Printing.layoutPdf(
+          onLayout: (_) async => bytes,
+          name: filename,
+          format: PdfPageFormat.a4,
+        );
+      } else {
+        debugPrint("downloadOfficialPdfFromServer error: ${response.statusCode} - ${response.body}");
+        throw Exception("Gagal mengunduh file resmi dari server.");
+      }
+    } catch (e) {
+      debugPrint("Exception in downloadOfficialPdfFromServer: $e");
+      rethrow;
+    }
+  }
+
+  // ── GENERATE COMPLAINT PDF RECEIPT ────────────────────
+  Future<Uint8List> generateComplaintPdf(PengaduanItem pengaduan) async {
+    final doc = pw.Document(
+      title   : 'Resi Pengaduan - ${pengaduan.judul}',
+      author  : 'Pemerintah Desa Hutabulu Mejan',
+      creator : 'Sistem Administrasi Kependudukan',
+    );
+
+    final fontRegular = await PdfGoogleFonts.notoSansRegular();
+    final fontBold    = await PdfGoogleFonts.notoSansBold();
+
+    final tglAjuan = _fmt(pengaduan.tanggalAjuan);
+    final tglRespons = pengaduan.tanggalRespons != null ? _fmt(pengaduan.tanggalRespons!) : '-';
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.fromLTRB(60, 50, 60, 50),
+        build: (ctx) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            _buildKopSurat(fontRegular, fontBold),
+            pw.SizedBox(height: 10),
+            pw.Container(height: 2.5, color: _primaryColor),
+            pw.SizedBox(height: 2),
+            pw.Container(height: 0.8, color: _primaryColor),
+            pw.SizedBox(height: 22),
+            pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    'RESI BUKTI PENGADUAN WARGA',
+                    style: pw.TextStyle(
+                      font       : fontBold,
+                      fontSize   : 13,
+                      color      : _textColor,
+                      decoration : pw.TextDecoration.underline,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                    'Nomor Resi: REG-${pengaduan.id}',
+                    style: pw.TextStyle(fontSize: 10.5, color: _mutedColor),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 22),
+            pw.Text(
+              'Sistem Administrasi Desa Hutabulu Mejan menerangkan bahwa laporan/pengaduan berikut telah diterima dari masyarakat dan tercatat dalam sistem:',
+              style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 3.5),
+            ),
+            pw.SizedBox(height: 14),
+            pw.Container(
+              padding  : const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color : _bgLight,
+                border: pw.Border.all(color: PdfColor.fromHex('e2e8f0'), width: 0.8),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _buildComplaintRow('ID Pengaduan', 'REG-${pengaduan.id}', fontRegular, fontBold),
+                  _buildComplaintRow('Tanggal Pengaduan', tglAjuan, fontRegular, fontBold),
+                  _buildComplaintRow('Jenis Pengaduan', pengaduan.jenisLabel, fontRegular, fontBold),
+                  _buildComplaintRow('Judul Pengaduan', pengaduan.judul, fontRegular, fontBold),
+                  _buildComplaintRow('Status Saat Ini', pengaduan.statusLabel.toUpperCase(), fontRegular, fontBold),
+                  pw.Divider(color: PdfColor.fromHex('cbd5e1'), height: 16),
+                  _buildComplaintRow('Isi Pengaduan', pengaduan.deskripsi, fontRegular, fontRegular, isLongText: true),
+                  if (pengaduan.catatanAdmin != null && pengaduan.catatanAdmin!.isNotEmpty) ...[
+                    pw.Divider(color: PdfColor.fromHex('cbd5e1'), height: 16),
+                    _buildComplaintRow('Tanggapan Admin', pengaduan.catatanAdmin!, fontRegular, fontBold, isLongText: true),
+                    _buildComplaintRow('Tanggal Tanggapan', tglRespons, fontRegular, fontRegular),
+                  ],
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Catatan: Dokumen resi ini merupakan bukti pelaporan digital yang sah. Pemantauan status tindak lanjut dapat dilakukan secara real-time melalui aplikasi mobile.',
+              style: pw.TextStyle(font: fontRegular, fontSize: 9, color: _mutedColor, fontStyle: pw.FontStyle.italic),
+            ),
+            pw.Spacer(),
+            _buildTandaTangan(tglRespons != '-' ? tglRespons : tglAjuan, fontRegular, fontBold),
+          ],
+        ),
+      ),
+    );
+
+    return doc.save();
+  }
+
+  pw.Widget _buildComplaintRow(String label, String value, pw.Font fontRegular, pw.Font fontValue, {bool isLongText = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 145,
+            child: pw.Text(label,
+                style: pw.TextStyle(font: fontRegular, fontSize: 11, color: _mutedColor)),
+          ),
+          pw.Text(':  ', style: pw.TextStyle(fontSize: 11, color: _mutedColor)),
+          pw.Expanded(
+            child: pw.Text(
+              value,
+              style: pw.TextStyle(font: fontValue, fontSize: 11, color: _textColor),
+              textAlign: isLongText ? pw.TextAlign.justify : pw.TextAlign.left,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> downloadComplaint(BuildContext context, PengaduanItem pengaduan) async {
+    final bytes = await generateComplaintPdf(pengaduan);
+    await Printing.layoutPdf(
+      onLayout : (_) async => bytes,
+      name     : 'Resi Pengaduan - REG-${pengaduan.id}',
       format   : PdfPageFormat.a4,
     );
   }

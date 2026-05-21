@@ -2,10 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../services/auth_service.dart';
+import '../services/notifikasi_service.dart';
+import 'notifikasi_page.dart';
 import 'pengumuman_page.dart';
 import 'surat_page.dart';
 import 'pengaduan_page.dart';
 import 'profile_page.dart';
+import 'arsip_page.dart';
 
 // ============================================================
 //  MODEL DATA
@@ -231,7 +234,7 @@ const List<SlideItem> slides = [
 const List<LayananItem> layananList = [
   LayananItem(label: 'Surat', emoji: '📋', color: Color(0xFF2563eb)),
   LayananItem(label: 'Pengaduan', emoji: '💬', color: Color(0xFFef4444)),
-  LayananItem(label: 'Data', emoji: '🗂️', color: Color(0xFF7c3aed)),
+  LayananItem(label: 'Riwayat & Arsip', emoji: '📂', color: Color(0xFF7c3aed)),
   LayananItem(label: 'Pengumuman', emoji: '📣', color: Color(0xFF16a34a)),
 ];
 
@@ -273,16 +276,14 @@ class _BerandaPageState extends State<BerandaPage>
   int _activeSlide = 0;
   Timer? _timer;
   final PageController _pageController = PageController();
-  final _service = PengajuanService();
-  OverlayEntry? _overlayEntry;
-  bool _notifOpen = false;
+  final _service = PengajuanService();        // lokal untuk animasi beranda
+  final _notifSvc = NotifikasiService();       // real notifikasi dari server
 
   late AnimationController _pulseCtrl;
   late AnimationController _floatCtrl;
   late Animation<double> _pulse;
   late Animation<double> _float;
 
-  // Untuk efek press scale pada slide dan layanan
   int? _pressedSlide;
   int? _pressedLayanan;
 
@@ -290,6 +291,12 @@ class _BerandaPageState extends State<BerandaPage>
   void initState() {
     super.initState();
     _service.addListener(_refresh);
+    _notifSvc.addListener(_refresh);
+
+    // Fetch notifikasi dari server saat beranda dibuka and start periodic polling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notifSvc.startPeriodicFetch(intervalSeconds: 10);
+    });
 
     _pulseCtrl = AnimationController(
       vsync: this,
@@ -312,7 +319,8 @@ class _BerandaPageState extends State<BerandaPage>
   @override
   void dispose() {
     _service.removeListener(_refresh);
-    _overlayEntry?.remove();
+    _notifSvc.removeListener(_refresh);
+    _notifSvc.stopPeriodicFetch();
     _timer?.cancel();
     _pageController.dispose();
     _pulseCtrl.dispose();
@@ -342,304 +350,16 @@ class _BerandaPageState extends State<BerandaPage>
   void _refresh() => setState(() {});
 
   void _toggleNotif() {
-    if (_notifOpen) {
-      _closeNotif();
-    } else {
-      _openNotif();
-    }
+    // Navigasi ke halaman notifikasi penuh (server-synced)
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotifikasiPage()),
+    ).then((_) {
+      // Refresh badge setelah kembali
+      _notifSvc.loadNotifikasi(forceRefresh: true);
+    });
   }
 
-  void _openNotif() {
-    _overlayEntry = _buildOverlay();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _notifOpen = true);
-  }
-
-  void _closeNotif() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    setState(() => _notifOpen = false);
-  }
-
-  OverlayEntry _buildOverlay() {
-    final renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-
-    return OverlayEntry(
-      builder: (_) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: _closeNotif,
-        child: Stack(
-          children: [
-            // Backdrop gelap
-            Container(color: Colors.black.withOpacity(0.35)),
-            // Panel notifikasi
-            Positioned(
-              top: 62, // disesuaikan dengan tinggi header 56
-              right: 16,
-              width: size.width - 32,
-              child: GestureDetector(
-                onTap: () {}, // cegah close saat tap panel
-                child: _buildNotifPanel(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotifPanel() {
-    final notifikasi = _service.notifikasi;
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header panel
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
-              child: Row(
-                children: [
-                  const Text('🔔', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Notifikasi',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1e293b),
-                      ),
-                    ),
-                  ),
-                  if (_service.jumlahBelumDibaca > 0)
-                    GestureDetector(
-                      onTap: () {
-                        _service.bacaSemuaNotifikasi();
-                        _overlayEntry?.markNeedsBuild();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFeff6ff),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Baca Semua',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Color(0xFF2563eb),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: _closeNotif,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFf1f5f9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: Color(0xFF64748b),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFf1f5f9)),
-
-            // Isi notifikasi
-            if (notifikasi.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 28),
-                child: Column(
-                  children: [
-                    Text('🔕', style: TextStyle(fontSize: 32)),
-                    SizedBox(height: 10),
-                    Text(
-                      'Belum ada notifikasi',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF94a3b8)),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 320),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: notifikasi.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
-                    color: Color(0xFFf1f5f9),
-                  ),
-                  itemBuilder: (_, i) => _buildNotifItem(notifikasi[i]),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotifItem(NotifikasiItem item) {
-    final isApprove = item.jenis == JenisNotifikasi.disetujui;
-    final isTolak = item.jenis == JenisNotifikasi.ditolak;
-    final Color color = isApprove
-        ? const Color(0xFF16a34a)
-        : isTolak
-        ? const Color(0xFFdc2626)
-        : const Color(0xFF2563eb);
-
-    return GestureDetector(
-      onTap: () {
-        _service.bacaNotifikasi(item.id);
-        _overlayEntry?.markNeedsBuild();
-
-        if (isApprove && item.pengajuanId != null) {
-          final pengajuan = _service.getPengajuanById(item.pengajuanId!);
-          if (pengajuan != null) {
-            _closeNotif();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PdfPreviewPage(pengajuan: pengajuan),
-              ),
-            );
-          }
-        }
-      },
-      child: Container(
-        color: item.sudahDibaca ? Colors.transparent : color.withOpacity(0.04),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  isApprove
-                      ? '✅'
-                      : isTolak
-                      ? '❌'
-                      : 'ℹ️',
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.judul,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: color,
-                          ),
-                        ),
-                      ),
-                      if (!item.sudahDibaca)
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    item.pesan,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748b),
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (isApprove) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF16a34a).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.picture_as_pdf_rounded,
-                            size: 10,
-                            color: Color(0xFF16a34a),
-                          ),
-                          SizedBox(width: 3),
-                          Text(
-                            'Tap untuk unduh PDF',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Color(0xFF16a34a),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   // ──────────────────────────────────────────────────────────
   //  SLIDE DETAIL BOTTOM SHEET
   // ──────────────────────────────────────────────────────────
@@ -784,6 +504,11 @@ class _BerandaPageState extends State<BerandaPage>
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const PengaduanPage()),
+      );
+    } else if (item.label == 'Riwayat & Arsip' || item.label == 'Data') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ArsipPage()),
       );
     } else if (item.label == 'Pengumuman') {
       Navigator.push(
@@ -1158,11 +883,9 @@ class _BerandaPageState extends State<BerandaPage>
                     clipBehavior: Clip.none,
                     children: [
                       _headerGlassBtn(
-                        _notifOpen
-                            ? Icons.notifications_rounded
-                            : Icons.notifications_none_rounded,
+                        Icons.notifications_none_rounded,
                       ),
-                      if (_service.jumlahBelumDibaca > 0)
+                      if (_notifSvc.jumlahBelumDibaca > 0)
                         Positioned(
                           right: -3,
                           top: -3,
@@ -1179,7 +902,9 @@ class _BerandaPageState extends State<BerandaPage>
                             ),
                             child: Center(
                               child: Text(
-                                '${_service.jumlahBelumDibaca}',
+                                _notifSvc.jumlahBelumDibaca > 9
+                                    ? '9+'
+                                    : '${_notifSvc.jumlahBelumDibaca}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -1765,17 +1490,6 @@ class _BerandaPageState extends State<BerandaPage>
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _statItem('1.2K', 'Penduduk', '👥'),
-          _statDivider(),
-          _statItem('430', 'KK', '🏠'),
-          _statDivider(),
-          _statItem('12', 'RT/RW', '📍'),
-          _statDivider(),
-          _statItem('98%', 'Terdata', '✅'),
         ],
       ),
     );

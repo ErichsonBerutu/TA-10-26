@@ -46,9 +46,9 @@ class PengaduanItem {
     final statusString = json['status']?.toString();
 
     return PengaduanItem(
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? json['id_pengaduan']?.toString() ?? '',
       judul: json['judul'] ?? json['title'] ?? '',
-      deskripsi: json['deskripsi'] ?? json['description'] ?? '',
+      deskripsi: json['deskripsi'] ?? json['description'] ?? json['isi'] ?? '',
       jenis: _jenisFromString(jenisString ?? ''),
       tanggalAjuan: DateTime.tryParse(
             json['tanggal_ajuan']?.toString() ??
