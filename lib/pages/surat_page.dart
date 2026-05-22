@@ -10,6 +10,7 @@ import '../services/pengajuan_service.dart' as pengajuan_service;
 import 'beranda_page.dart' show BerandaPage;
 import 'pengaduan_page.dart';
 import 'pengumuman_page.dart';
+import 'form_pengajuan_surat_page.dart';
 
 // ============================================================
 //  MODEL
@@ -366,12 +367,71 @@ class SuratPage extends StatefulWidget {
 }
 
 class _SuratPageState extends State<SuratPage> {
-  void _pilihSurat(JenisSurat surat) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => FormSuratPage(surat: surat)),
-    );
+  List<dynamic> _dynamicSurat = [];
+  bool _isLoadingDynamic = true;
+  String? _dynamicError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDynamicSurat();
   }
+
+  Future<void> _fetchDynamicSurat() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingDynamic = true;
+      _dynamicError = null;
+    });
+
+    try {
+      final token = AuthService().token;
+      if (token == null) {
+        setState(() {
+          _isLoadingDynamic = false;
+          _dynamicError = 'Token tidak ditemukan. Silakan login ulang.';
+        });
+        return;
+      }
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/dynamic/jenis-surat');
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['status'] == true && body['data'] != null) {
+          setState(() {
+            _dynamicSurat = body['data'];
+            _isLoadingDynamic = false;
+          });
+        } else {
+          setState(() {
+            _dynamicError = body['message'] ?? 'Gagal memuat surat dinamis.';
+            _isLoadingDynamic = false;
+          });
+        }
+      } else {
+        setState(() {
+          _dynamicError = 'Gagal memuat data dari server (${response.statusCode}).';
+          _isLoadingDynamic = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _dynamicError = 'Koneksi terputus. Periksa jaringan internet.';
+        _isLoadingDynamic = false;
+      });
+      debugPrint('Error fetch dynamic surat: $e');
+    }
+  }
+
+
 
   void _onBottomNavTap(AppNavItem item) {
     if (item == AppNavItem.surat) {
@@ -407,15 +467,20 @@ class _SuratPageState extends State<SuratPage> {
           children: [
             _buildHeader(),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBanner(),
-                    _buildSectionTitle(),
-                    _buildGrid(),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: _fetchDynamicSurat,
+                color: const Color(0xFF2563eb),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBanner(),
+                      _buildUnifiedSectionHeader(),
+                      _buildUnifiedSuratGrid(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -427,6 +492,274 @@ class _SuratPageState extends State<SuratPage> {
         onTap: _onBottomNavTap,
       ),
     );
+  }
+
+  /// Header tunggal untuk semua layanan surat
+  Widget _buildUnifiedSectionHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Layanan Surat',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1e293b),
+            ),
+          ),
+          if (!_isLoadingDynamic)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF2563eb)),
+              onPressed: _fetchDynamicSurat,
+              tooltip: 'Segarkan data',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Grid terpadu: semua surat dari API — mekanisme identik untuk semua jenis surat
+  Widget _buildUnifiedSuratGrid() {
+    if (_isLoadingDynamic) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF2563eb)),
+        ),
+      );
+    }
+
+    if (_dynamicError != null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFfef2f2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFfee2e2)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: Colors.red, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Gagal memuat layanan surat:\n$_dynamicError',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF991b1b), height: 1.5),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: _fetchDynamicSurat,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Coba Lagi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563eb),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_dynamicSurat.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(24),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFf1f5f9)),
+        ),
+        child: Column(
+          children: const [
+            Text('📋', style: TextStyle(fontSize: 40)),
+            SizedBox(height: 12),
+            Text(
+              'Belum ada layanan surat tersedia.',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748b),
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Admin desa belum menambahkan jenis surat. Hubungi perangkat desa untuk informasi lebih lanjut.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: Color(0xFF94a3b8), height: 1.5),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _dynamicSurat.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.95,
+        ),
+        itemBuilder: (_, i) => _buildSuratCard(_dynamicSurat[i]),
+      ),
+    );
+  }
+
+  /// Kartu surat terpadu — digunakan untuk SEMUA jenis surat (lama & baru)
+  Widget _buildSuratCard(Map<String, dynamic> surat) {
+    int id = 0;
+    final rawId = surat['id_jenis_surat'] ?? surat['id'];
+    if (rawId is int) {
+      id = rawId;
+    } else if (rawId != null) {
+      id = int.tryParse(rawId.toString()) ?? 0;
+    }
+
+    final String nama = surat['nama_surat'] ?? 'Surat';
+    final String deskripsi =
+        surat['deskripsi'] ?? surat['deskripsi_surat'] ?? 'Layanan surat desa';
+    final String emoji = _getEmojiForSurat(nama);
+    final Color color = _getColorForSurat(nama);
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          if (id == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('ID surat tidak valid, coba refresh.')),
+            );
+            return;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FormPengajuanSuratPage(
+                jenisSuratId: id,
+                namaSurat: nama,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x05000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                nama,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1e293b),
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                deskripsi,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF94a3b8),
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Ajukan →',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getEmojiForSurat(String namaSurat) {
+    final lower = namaSurat.toLowerCase();
+    if (lower.contains('domisili')) return '🏠';
+    if (lower.contains('usaha')) return '🏪';
+    if (lower.contains('tidak mampu') || lower.contains('sktm')) return '📋';
+    if (lower.contains('nikah') || lower.contains('pernikahan')) return '💍';
+    if (lower.contains('lahir') || lower.contains('kelahiran')) return '👶';
+    if (lower.contains('mati') || lower.contains('kematian') || lower.contains('meninggal')) return '🕊️';
+    return '📝';
+  }
+
+  Color _getColorForSurat(String namaSurat) {
+    final lower = namaSurat.toLowerCase();
+    if (lower.contains('domisili')) return const Color(0xFF2563eb);
+    if (lower.contains('usaha')) return const Color(0xFF16a34a);
+    if (lower.contains('tidak mampu') || lower.contains('sktm')) return const Color(0xFFea580c);
+    if (lower.contains('nikah') || lower.contains('pernikahan')) return const Color(0xFFdb2777);
+    if (lower.contains('lahir') || lower.contains('kelahiran')) return const Color(0xFF0891b2);
+    if (lower.contains('mati') || lower.contains('kematian') || lower.contains('meninggal')) return const Color(0xFF475569);
+    return const Color(0xFF8b5cf6);
   }
 
   // ── Header ──────────────────────────────────────────────
@@ -532,131 +865,8 @@ class _SuratPageState extends State<SuratPage> {
     );
   }
 
-  // ── Section Title ────────────────────────────────────────
 
-  Widget _buildSectionTitle() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
-      child: Text(
-        'Pilih Jenis Surat',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF1e293b),
-        ),
-      ),
-    );
-  }
 
-  // ── Grid Kartu Surat ─────────────────────────────────────
-
-  Widget _buildGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: daftarSurat.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.95, // ← ubah dari 1.1 menjadi 0.95
-        ),
-        itemBuilder: (_, i) => _buildCard(daftarSurat[i]),
-      ),
-    );
-  }
-
-  Widget _buildCard(JenisSurat surat) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _pilihSurat(surat),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 10,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: surat.color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    surat.emoji,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                surat.nama,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1e293b),
-                  height: 1.3,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                surat.deskripsi,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF94a3b8),
-                  height: 1.3,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: surat.color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Ajukan →',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: surat.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ============================================================

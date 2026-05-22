@@ -18,6 +18,7 @@ import './auth_service.dart';
 enum TipeNotifikasi {
   pengajuanBaru,
   pengaduanBaru,
+  pengaduanTerkirim,
   respons,
   disetujui,
   ditolak,
@@ -58,6 +59,9 @@ class NotifikasiItem {
         break;
       case 'pengaduan_baru':
         tipe = TipeNotifikasi.pengaduanBaru;
+        break;
+      case 'pengaduan_terkirim':
+        tipe = TipeNotifikasi.pengaduanTerkirim;
         break;
       default:
         tipe = TipeNotifikasi.respons;

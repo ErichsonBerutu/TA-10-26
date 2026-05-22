@@ -346,6 +346,8 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
         return Colors.blue;
       case TipeNotifikasi.pengaduanBaru:
         return Colors.orange;
+      case TipeNotifikasi.pengaduanTerkirim:
+        return Colors.green;
       default:
         return Colors.purple;
     }
