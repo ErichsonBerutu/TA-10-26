@@ -53,7 +53,10 @@ class _RiwayatPageState extends State<RiwayatPage>
                 animation: _service,
                 builder: (_, __) {
                   final semua     = _service.daftarPengajuan;
-                  final menunggu  = semua.where((p) => p.status == StatusPengajuan.menunggu).toList();
+                  final menunggu  = semua.where((p) =>
+                    p.status == StatusPengajuan.menunggu ||
+                    p.status == StatusPengajuan.diproses
+                  ).toList();
                   final disetujui = semua.where((p) => p.status == StatusPengajuan.disetujui).toList();
                   final ditolak   = semua.where((p) => p.status == StatusPengajuan.ditolak).toList();
                   return TabBarView(
@@ -207,6 +210,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     final (Color statusColor, Color statusBg, IconData statusIcon) =
         switch (p.status) {
       StatusPengajuan.menunggu  => (const Color(0xFFb45309), const Color(0xFFfef3c7), Icons.hourglass_empty_rounded),
+      StatusPengajuan.diproses  => (const Color(0xFF1d4ed8), const Color(0xFFdbeafe), Icons.sync_rounded),
       StatusPengajuan.disetujui => (const Color(0xFF15803d), const Color(0xFFdcfce7), Icons.check_circle_rounded),
       StatusPengajuan.ditolak   => (const Color(0xFFb91c1c), const Color(0xFFfee2e2), Icons.cancel_rounded),
     };
@@ -257,6 +261,27 @@ class _RiwayatPageState extends State<RiwayatPage>
                         p.id,
                         style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
                       ),
+                      // Tampilkan nomor surat jika sudah disetujui
+                      if (p.nomorSurat != null && p.nomorSurat!.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(Icons.numbers_rounded, size: 11, color: Color(0xFF15803d)),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                'No. ${p.nomorSurat}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF15803d),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -324,7 +349,7 @@ class _RiwayatPageState extends State<RiwayatPage>
               ),
             ),
 
-          // ── Tanggal respons (jika sudah diproses)
+          // ── Tanggal respons (jika sudah direspons admin)
           if (p.tanggalRespons != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
@@ -333,7 +358,9 @@ class _RiwayatPageState extends State<RiwayatPage>
                   Icon(
                     p.status == StatusPengajuan.disetujui
                         ? Icons.check_rounded
-                        : Icons.close_rounded,
+                        : p.status == StatusPengajuan.diproses
+                            ? Icons.sync_rounded
+                            : Icons.close_rounded,
                     size: 12,
                     color: statusColor,
                   ),
@@ -377,7 +404,7 @@ class _RiwayatPageState extends State<RiwayatPage>
               ),
             ),
 
-          // ── Divider bawah
+          // ── Badge info status bawah kartu
           if (p.status == StatusPengajuan.menunggu)
             Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -396,6 +423,29 @@ class _RiwayatPageState extends State<RiwayatPage>
                       'Pengajuan Anda sedang menunggu persetujuan dari perangkat desa.',
                       style: TextStyle(
                           fontSize: 11, color: Color(0xFF92400e), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (p.status == StatusPengajuan.diproses)
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFeff6ff),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF93c5fd)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.sync_rounded, size: 14, color: Color(0xFF2563eb)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Pengajuan Anda sedang diverifikasi oleh petugas desa. Harap tunggu.',
+                      style: TextStyle(
+                          fontSize: 11, color: Color(0xFF1d4ed8), height: 1.4),
                     ),
                   ),
                 ],

@@ -264,6 +264,11 @@ class _ArsipPageState extends State<ArsipPage>
           const Color(0xFFfffbeb),
           'Menunggu'
         ),
+      model_pengajuan.StatusPengajuan.diproses => (
+          const Color(0xFF2563eb),
+          const Color(0xFFeff6ff),
+          'Diproses'
+        ),
       model_pengajuan.StatusPengajuan.disetujui => (
           const Color(0xFF16a34a),
           const Color(0xFFf0fdf4),

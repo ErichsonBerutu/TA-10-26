@@ -4,7 +4,7 @@ import 'dart:convert';
 //  MODEL PENGAJUAN SURAT
 // ============================================================
 
-enum StatusPengajuan { menunggu, disetujui, ditolak }
+enum StatusPengajuan { menunggu, diproses, disetujui, ditolak }
 
 class PengajuanSurat {
   final String id;
@@ -35,6 +35,8 @@ class PengajuanSurat {
     switch (status) {
       case StatusPengajuan.menunggu:
         return 'Menunggu';
+      case StatusPengajuan.diproses:
+        return 'Diproses';
       case StatusPengajuan.disetujui:
         return 'Disetujui';
       case StatusPengajuan.ditolak:
@@ -46,6 +48,8 @@ class PengajuanSurat {
     switch (status) {
       case StatusPengajuan.menunggu:
         return '⏳';
+      case StatusPengajuan.diproses:
+        return '🔄';
       case StatusPengajuan.disetujui:
         return '✅';
       case StatusPengajuan.ditolak:
@@ -60,7 +64,10 @@ class PengajuanSurat {
       statusEnum = StatusPengajuan.disetujui;
     } else if (dbStatus == 'ditolak') {
       statusEnum = StatusPengajuan.ditolak;
+    } else if (dbStatus == 'diproses') {
+      statusEnum = StatusPengajuan.diproses;
     } else {
+      // 'diajukan', 'pending', atau status lainnya → menunggu
       statusEnum = StatusPengajuan.menunggu;
     }
 
