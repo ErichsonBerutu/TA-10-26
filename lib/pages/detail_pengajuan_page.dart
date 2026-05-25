@@ -244,6 +244,8 @@ class _DetailPengajuanPageState extends State<DetailPengajuanPage> {
     switch (widget.pengajuan.status) {
       case StatusPengajuan.menunggu:
         return Colors.orange;
+      case StatusPengajuan.diproses:
+        return Colors.blue;
       case StatusPengajuan.disetujui:
         return Colors.green;
       case StatusPengajuan.ditolak:

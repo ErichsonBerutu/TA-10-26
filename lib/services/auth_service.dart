@@ -78,15 +78,17 @@ class AuthService extends ChangeNotifier {
           _currentUser = User(
             id: user["id"],
             nik: user["nik"] ?? "",
-            nama: user["name"] ?? "", // Menyesuaikan dengan 'name' dari Laravel
+            noKk: user["no_kk"] ?? user["kk"] ?? user["no_kartu_keluarga"] ?? "",
+            nama: user["name"] ?? user["nama"] ?? "", // Menyesuaikan dengan 'name' dari Laravel
             email: user["email"] ?? "",
-            role: user["role"] ?? "user",
+            role: user["role"] ?? "masyarakat",
             alamat: user["alamat"] ?? "",
             tempatLahir: user["tempat_lahir"] ?? "",
             tanggalLahir: DateTime.tryParse(
                   user["tanggal_lahir"] ?? "",
                 ) ??
                 DateTime.now(),
+            agama: user["agama"] ?? "",
           );
 
           _isLoggedIn = true;
@@ -175,6 +177,7 @@ class AuthService extends ChangeNotifier {
           "tempat_lahir": updatedUser.tempatLahir,
           "tanggal_lahir":
               updatedUser.tanggalLahir?.toIso8601String() ?? "",
+          "no_kk": updatedUser.noKk,
         }),
       );
 
@@ -190,4 +193,5 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
+
 }

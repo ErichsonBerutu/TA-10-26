@@ -55,6 +55,76 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     super.dispose();
   }
 
+  // ── AUTOFILL UTILITIES ──────────────────────────────────────────
+  String _getAutoFillValue(String label) {
+    final user = AuthService().currentUser;
+    if (user == null) return '';
+
+    final lower = label.toLowerCase();
+    
+    // 1. NIK
+    if (lower == 'nik' || 
+        lower.contains('no. nik') || 
+        lower.contains('no.nik') || 
+        lower.contains('nomor nik') || 
+        lower.contains('nomor induk kependudukan')) {
+      return user.nik;
+    }
+    
+    // 2. KK / No. KK
+    if (lower == 'kk' || 
+        lower == 'no. kk' || 
+        lower == 'no.kk' || 
+        lower == 'no kk' || 
+        lower.contains('nomor kk') || 
+        lower.contains('no kartu keluarga') || 
+        lower.contains('nomor kartu keluarga') || 
+        lower.contains('no. kartu keluarga')) {
+      return user.noKk;
+    }
+    
+    // 3. Nama / Nama Lengkap
+    if (lower == 'nama' || 
+        lower == 'nama lengkap' || 
+        lower.contains('nama pemohon') || 
+        lower.contains('nama lengkap pemohon')) {
+      return user.nama;
+    }
+    
+    // 4. Tempat Lahir
+    if (lower == 'tempat lahir' || 
+        lower.contains('tempat lahir') || 
+        lower.contains('tmp lahir') || 
+        lower.contains('tmp. lahir')) {
+      return user.tempatLahir;
+    }
+    
+    // 5. Alamat
+    if (lower == 'alamat' || 
+        lower.contains('alamat ktp') || 
+        lower.contains('alamat lengkap') || 
+        lower.contains('alamat domisili')) {
+      return user.alamat;
+    }
+
+    // 6. Tanggal Lahir
+    if (lower == 'tanggal lahir' || 
+        lower.contains('tanggal lahir') || 
+        lower.contains('tgl lahir') || 
+        lower.contains('tgl. lahir')) {
+      return user.tanggalLahir != null
+          ? user.tanggalLahir!.toIso8601String().split('T')[0]
+          : '';
+    }
+
+    // 7. Agama
+    if (lower == 'agama' || lower.contains('agama')) {
+      return user.agama;
+    }
+
+    return '';
+  }
+
   // ── LOAD DYNAMIC REQUIREMENTS FROM API ──────────────────────────
   Future<void> _fetchPersyaratan() async {
     setState(() {
@@ -91,9 +161,25 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             final model = PersyaratanSuratModel.fromJson(item);
             loaded.add(model);
 
-            // Inisialisasi controller jika berupa input teks/angka
+            final keyStr = model.id.toString();
+            // Inisialisasi controller jika berupa input teks/angka dengan auto-fill
             if (model.tipeField == 'text' || model.tipeField == 'number') {
-              _controllers[model.id.toString()] = TextEditingController();
+              final autoVal = _getAutoFillValue(model.namaField);
+              _controllers[keyStr] = TextEditingController(text: autoVal);
+            } else if (model.tipeField == 'date') {
+              // Auto-fill date if it's Date of Birth
+              final lower = model.namaField.toLowerCase();
+              if (lower.contains('tanggal lahir') || 
+                  lower.contains('tgl lahir') || 
+                  lower.contains('tgl. lahir') || 
+                  lower.contains('tgl_lahir')) {
+                final user = AuthService().currentUser;
+                if (user != null && user.tanggalLahir != null) {
+                  final tgl = user.tanggalLahir!;
+                  final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
+                  _answers[keyStr] = formatted;
+                }
+              }
             }
           }
 
