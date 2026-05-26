@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../api_config/api_config.dart';
 import './auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
 //  MODEL NOTIFIKASI (dari server)
@@ -103,6 +104,7 @@ class NotifikasiService extends ChangeNotifier {
   NotifikasiService._internal();
 
   final List<NotifikasiItem> _list = [];
+  final Set<String> _deletedIds = {};
   bool _isLoaded = false;
   bool _isFetching = false;
   Timer? _periodicTimer;
@@ -112,6 +114,27 @@ class NotifikasiService extends ChangeNotifier {
       _list.where((n) => !n.sudahDibaca).toList();
   int get jumlahBelumDibaca => belumDibaca.length;
   bool get isLoaded => _isLoaded;
+
+  // ── Load & Save Deleted IDs from Local Storage ──────────────
+  Future<void> _loadDeletedIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList('deleted_notification_ids') ?? [];
+      _deletedIds.clear();
+      _deletedIds.addAll(list);
+    } catch (e) {
+      debugPrint("Error loading deleted notification ids: $e");
+    }
+  }
+
+  Future<void> _saveDeletedIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('deleted_notification_ids', _deletedIds.toList());
+    } catch (e) {
+      debugPrint("Error saving deleted notification ids: $e");
+    }
+  }
 
   // ── Fetch dari server ─────────────────────────────────────
 
@@ -129,6 +152,8 @@ class NotifikasiService extends ChangeNotifier {
       return;
     }
 
+    await _loadDeletedIds();
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/notifikasi');
       final response = await http
@@ -143,9 +168,13 @@ class NotifikasiService extends ChangeNotifier {
         if (body['status'] == 'success' && body['data'] != null) {
           final List rawList = body['data'] as List;
           _list.clear();
-          _list.addAll(
-            rawList.map((e) => NotifikasiItem.fromJson(e as Map<String, dynamic>)),
-          );
+          
+          final items = rawList
+              .map((e) => NotifikasiItem.fromJson(e as Map<String, dynamic>))
+              .where((n) => !_deletedIds.contains(n.id))
+              .toList();
+
+          _list.addAll(items);
         }
       }
     } catch (e) {
@@ -208,9 +237,11 @@ class NotifikasiService extends ChangeNotifier {
 
   // ── Hapus lokal (hanya UI, server tidak dihapus) ──────────
 
-  void hapusNotifikasi(String id) {
+  Future<void> hapusNotifikasi(String id) async {
+    _deletedIds.add(id);
     _list.removeWhere((n) => n.id == id);
     notifyListeners();
+    await _saveDeletedIds();
   }
 
   // ── Periodic Polling ──────────────────────────────────────

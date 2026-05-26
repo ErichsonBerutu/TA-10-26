@@ -61,6 +61,21 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     if (user == null) return '';
 
     final lower = label.toLowerCase();
+
+    // 0. Tempat & Tanggal Lahir combined (e.g. Tempat, tanggal lahir atau Tempat/Tgl. Lahir atau TTL)
+    if (lower.contains('ttl') || 
+        (lower.contains('tempat') && (lower.contains('tanggal') || lower.contains('tgl')))) {
+      if (user.tanggalLahir != null) {
+        final tgl = user.tanggalLahir!;
+        const bln = [
+          '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+        ];
+        final blnStr = tgl.month >= 1 && tgl.month <= 12 ? bln[tgl.month] : '';
+        return "${user.tempatLahir}, ${tgl.day} $blnStr ${tgl.year}";
+      }
+      return user.tempatLahir;
+    }
     
     // 1. NIK
     if (lower == 'nik' || 

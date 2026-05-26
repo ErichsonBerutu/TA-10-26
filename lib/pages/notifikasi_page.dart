@@ -8,7 +8,7 @@ import '../services/notifikasi_service.dart';
 // ============================================================
 
 class NotifikasiPage extends StatefulWidget {
-  const NotifikasiPage({Key? key}) : super(key: key);
+  const NotifikasiPage({super.key});
 
   @override
   State<NotifikasiPage> createState() => _NotifikasiPageState();
@@ -60,7 +60,8 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           // Tandai semua dibaca
           AnimatedBuilder(
             animation: _svc,
-            builder: (_, __) {
+            // ignore: avoid_types_on_closure_parameters
+            builder: (BuildContext ctx, Widget? child) {
               if (_svc.belumDibaca.isEmpty) return const SizedBox.shrink();
               return TextButton(
                 onPressed: () async {
@@ -172,13 +173,13 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
           border: Border.all(
-            color: notif.sudahDibaca ? const Color(0xFFf1f5f9) : color.withOpacity(0.35),
+            color: notif.sudahDibaca ? const Color(0xFFf1f5f9) : color.withValues(alpha: 0.35),
             width: 1.5,
           ),
         ),
@@ -191,7 +192,7 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
               height: 46,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
               ),
               child: Center(child: Text(notif.ikon, style: const TextStyle(fontSize: 22))),
             ),

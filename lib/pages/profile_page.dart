@@ -20,121 +20,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late User _editedUser;
-
-  late TextEditingController _nikCtrl;
-  late TextEditingController _namaCtrl;
-  late TextEditingController _tempatLahirCtrl;
-  late TextEditingController _tanggalLahirCtrl;
-  late TextEditingController _alamatCtrl;
-  late TextEditingController _agamaCtrl;
-
-  bool _isEditing = false;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _editedUser = widget.user;
-
-    _nikCtrl = TextEditingController(text: _editedUser.nik);
-    _namaCtrl = TextEditingController(text: _editedUser.nama);
-    _tempatLahirCtrl = TextEditingController(text: _editedUser.tempatLahir);
-    _tanggalLahirCtrl = TextEditingController(
-      text: _editedUser.tanggalLahir != null
-          ? _editedUser.tanggalLahir!.toIso8601String().split('T')[0]
-          : '',
-    );
-    _alamatCtrl = TextEditingController(text: _editedUser.alamat);
-    _agamaCtrl = TextEditingController(text: _editedUser.agama);
-  }
-
-  @override
-  void dispose() {
-    _nikCtrl.dispose();
-    _namaCtrl.dispose();
-    _tempatLahirCtrl.dispose();
-    _tanggalLahirCtrl.dispose();
-    _alamatCtrl.dispose();
-    _agamaCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveProfile() async {
-    final nama = _namaCtrl.text.trim();
-    final tempatLahir = _tempatLahirCtrl.text.trim();
-    final tanggalLahirInput = _tanggalLahirCtrl.text.trim();
-    final alamat = _alamatCtrl.text.trim();
-
-    if (nama.isEmpty || tempatLahir.isEmpty || alamat.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama lengkap, tempat lahir, dan alamat wajib diisi.'),
-        ),
-      );
-      return;
-    }
-
-    DateTime? parsedTanggalLahir;
-    if (tanggalLahirInput.isNotEmpty) {
-      parsedTanggalLahir = DateTime.tryParse(tanggalLahirInput);
-      if (parsedTanggalLahir == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tanggal lahir harus dalam format YYYY-MM-DD.'),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
-    final updatedUser = _editedUser.copyWith(
-      nama: nama,
-      tempatLahir: tempatLahir,
-      tanggalLahir: parsedTanggalLahir,
-      alamat: alamat,
-    );
-
-    final success = await widget.authService.updateProfile(updatedUser);
-
-    if (!mounted) return;
-
-    if (success) {
-      setState(() {
-        _editedUser = updatedUser;
-        _isEditing = false;
-        _isSaving = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui.')),
-      );
-    } else {
-      setState(() {
-        _isSaving = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memperbarui profil. Coba lagi.')),
-      );
-    }
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _isEditing = false;
-      _namaCtrl.text = _editedUser.nama;
-      _tempatLahirCtrl.text = _editedUser.tempatLahir;
-      _tanggalLahirCtrl.text = _editedUser.tanggalLahir != null
-          ? _editedUser.tanggalLahir!.toIso8601String().split('T')[0]
-          : '';
-      _alamatCtrl.text = _editedUser.alamat;
-    });
-  }
-
   // =====================================================
   // LOGOUT
   // =====================================================
@@ -212,6 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = widget.user;
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
@@ -223,9 +109,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.only(bottom: 30),
                 child: Column(
                   children: [
-                    _buildProfileCard(),
-                    _buildFormSection(),
-                    _buildActionButtons(),
+                    _buildProfileCard(user),
+                    _buildInfoSection(user),
+                    _buildLogoutButton(),
                   ],
                 ),
               ),
@@ -269,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(User user) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(22),
@@ -284,20 +170,18 @@ class _ProfilePageState extends State<ProfilePage> {
             radius: 38,
             backgroundColor: const Color(0xFF2563EB),
             child: Text(
-              _editedUser.nama.isNotEmpty
-                  ? _editedUser.nama[0].toUpperCase()
-                  : 'U',
+              user.nama.isNotEmpty ? user.nama[0].toUpperCase() : 'U',
               style: const TextStyle(fontSize: 28, color: Colors.white),
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            _editedUser.nama,
+            user.nama,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 4),
           Text(
-            "NIK : ${_editedUser.nik}",
+            "NIK : ${user.nik}",
             style: const TextStyle(color: Colors.grey),
           ),
         ],
@@ -305,156 +189,145 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildFormSection() {
+  Widget _buildInfoSection(User user) {
+    String tanggalLahirStr = '-';
+    if (user.tanggalLahir != null) {
+      final tgl = user.tanggalLahir!;
+      const bln = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+      ];
+      final blnStr = tgl.month >= 1 && tgl.month <= 12 ? bln[tgl.month] : '';
+      tanggalLahirStr = "${tgl.day} $blnStr ${tgl.year}";
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _buildField(label: "NIK", controller: _nikCtrl, enabled: false),
-          _buildField(
-            label: "Nama Lengkap",
-            controller: _namaCtrl,
-            enabled: _isEditing,
-          ),
-          _buildField(
-            label: "Tempat Lahir",
-            controller: _tempatLahirCtrl,
-            enabled: _isEditing,
-          ),
-          _buildField(
-            label: "Tanggal Lahir (YYYY-MM-DD)",
-            controller: _tanggalLahirCtrl,
-            enabled: _isEditing,
-          ),
-          _buildField(
-            label: "Alamat",
-            controller: _alamatCtrl,
-            enabled: _isEditing,
-            maxLines: 3,
-          ),
-          _buildField(label: "Agama", controller: _agamaCtrl, enabled: false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required bool enabled,
-    int maxLines = 1,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: enabled ? Colors.white : const Color(0xFFF8FAFC),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [BoxShadow(blurRadius: 10, color: Colors.black12)],
+        ),
+        child: Column(
+          children: [
+            _buildInfoRow(
+              icon: Icons.badge_outlined,
+              label: 'NIK',
+              value: user.nik,
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.person_outline_rounded,
+              label: 'Nama Lengkap',
+              value: user.nama,
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.location_city_outlined,
+              label: 'Tempat Lahir',
+              value: user.tempatLahir.isNotEmpty ? user.tempatLahir : '-',
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.cake_outlined,
+              label: 'Tanggal Lahir',
+              value: tanggalLahirStr,
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.home_outlined,
+              label: 'Alamat',
+              value: user.alamat.isNotEmpty ? user.alamat : '-',
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.church_outlined,
+              label: 'Agama',
+              value: user.agama.isNotEmpty ? user.agama : '-',
+              isLast: true,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isLast = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+      padding: EdgeInsets.fromLTRB(16, 14, 16, isLast ? 14 : 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isEditing)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isEditing = true;
-                  });
-                },
-                icon: const Icon(Icons.edit_rounded),
-                label: const Text('Edit Profil'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  backgroundColor: const Color(0xFF2563EB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          if (_isEditing) ...[
-            Row(
+          Icon(icon, color: const Color(0xFF2563EB), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _cancelEdit,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      foregroundColor: const Color(0xFF2563EB),
-                      side: const BorderSide(
-                        color: Color(0xFF2563EB),
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Batal'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _saveProfile,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      backgroundColor: const Color(0xFF2563EB),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Simpan'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _logout,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.logout_rounded, color: Colors.red),
-                SizedBox(width: 8),
                 Text(
-                  "Keluar dari Akun",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      color: Color(0xFFF1F5F9),
+      indent: 48,
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: OutlinedButton(
+        onPressed: _logout,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+          foregroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text(
+              "Keluar dari Akun",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
       ),
     );
   }
