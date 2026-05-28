@@ -9,6 +9,7 @@ import '../api_config/api_config.dart';
 import '../services/auth_service.dart';
 import '../models/persyaratan_model.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
+import '../services/offline_database_service.dart';
 
 class FormPengajuanSuratPage extends StatefulWidget {
   final int jenisSuratId;
@@ -156,6 +157,43 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       return;
     }
 
+    // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
+    final localData = await OfflineDatabaseService().ambilPersyaratan(widget.jenisSuratId);
+    if (localData.isNotEmpty) {
+      final List<PersyaratanSuratModel> loaded = [];
+      for (var item in localData) {
+        final model = PersyaratanSuratModel.fromJson(item);
+        loaded.add(model);
+
+        final keyStr = model.id.toString();
+        // Inisialisasi controller jika berupa input teks/angka dengan auto-fill
+        if (model.tipeField == 'text' || model.tipeField == 'number') {
+          final autoVal = _getAutoFillValue(model.namaField);
+          _controllers[keyStr] = TextEditingController(text: autoVal);
+        } else if (model.tipeField == 'date') {
+          // Auto-fill date if it's Date of Birth
+          final lower = model.namaField.toLowerCase();
+          if (lower.contains('tanggal lahir') || 
+              lower.contains('tgl lahir') || 
+              lower.contains('tgl. lahir') || 
+              lower.contains('tgl_lahir')) {
+            final user = AuthService().currentUser;
+            if (user != null && user.tanggalLahir != null) {
+              final tgl = user.tanggalLahir!;
+              final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
+              _answers[keyStr] = formatted;
+            }
+          }
+        }
+      }
+
+      setState(() {
+        _persyaratan = loaded;
+        _isLoadingRequirements = false;
+        _errorMessage = null;
+      });
+    }
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/dynamic/persyaratan/${widget.jenisSuratId}');
       final response = await http.get(
@@ -164,7 +202,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -180,7 +218,15 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             // Inisialisasi controller jika berupa input teks/angka dengan auto-fill
             if (model.tipeField == 'text' || model.tipeField == 'number') {
               final autoVal = _getAutoFillValue(model.namaField);
-              _controllers[keyStr] = TextEditingController(text: autoVal);
+              // Update atau inisialisasi controller baru
+              if (_controllers[keyStr] == null) {
+                _controllers[keyStr] = TextEditingController(text: autoVal);
+              } else {
+                // Jangan override input user yang sedang mengetik
+                if (_controllers[keyStr]!.text.isEmpty && autoVal.isNotEmpty) {
+                  _controllers[keyStr]!.text = autoVal;
+                }
+              }
             } else if (model.tipeField == 'date') {
               // Auto-fill date if it's Date of Birth
               final lower = model.namaField.toLowerCase();
@@ -189,7 +235,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                   lower.contains('tgl. lahir') || 
                   lower.contains('tgl_lahir')) {
                 final user = AuthService().currentUser;
-                if (user != null && user.tanggalLahir != null) {
+                if (user != null && user.tanggalLahir != null && _answers[keyStr] == null) {
                   final tgl = user.tanggalLahir!;
                   final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
                   _answers[keyStr] = formatted;
@@ -201,24 +247,37 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           setState(() {
             _persyaratan = loaded;
             _isLoadingRequirements = false;
+            _errorMessage = null;
           });
+
+          // Simpan data terbaru ke cache
+          final List<Map<String, dynamic>> cacheList = rawList
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+          await OfflineDatabaseService().simpanPersyaratan(widget.jenisSuratId, cacheList);
         } else {
-          setState(() {
-            _isLoadingRequirements = false;
-            _errorMessage = body['message'] ?? 'Gagal mengambil persyaratan surat.';
-          });
+          if (_persyaratan.isEmpty) {
+            setState(() {
+              _isLoadingRequirements = false;
+              _errorMessage = body['message'] ?? 'Gagal mengambil persyaratan surat.';
+            });
+          }
         }
       } else {
-        setState(() {
-          _isLoadingRequirements = false;
-          _errorMessage = 'Kesalahan server (${response.statusCode}). Silakan coba lagi.';
-        });
+        if (_persyaratan.isEmpty) {
+          setState(() {
+            _isLoadingRequirements = false;
+            _errorMessage = 'Kesalahan server (${response.statusCode}). Silakan coba lagi.';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _isLoadingRequirements = false;
-        _errorMessage = 'Koneksi terputus. Periksa jaringan internet atau server Anda.';
-      });
+      if (_persyaratan.isEmpty) {
+        setState(() {
+          _isLoadingRequirements = false;
+          _errorMessage = 'Koneksi terputus. Periksa jaringan internet atau server Anda.';
+        });
+      }
       debugPrint('Error fetching persyaratan: $e');
     }
   }
@@ -408,11 +467,44 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         _showErrorDialog(errMsg);
       }
     } catch (e) {
+      debugPrint('Koneksi bermasalah saat mengirim pengajuan, menyimpan ke antrean offline: $e');
+      
+      // Buat format localFormData
+      final Map<String, String> localFormData = {};
+      for (final syarat in _persyaratan) {
+        final key = syarat.id.toString();
+        final val = _answers[key];
+        if (val is XFile) {
+          localFormData[syarat.namaField] = '[Unggahan Foto] ${val.name}';
+        } else if (val != null) {
+          localFormData[syarat.namaField] = val.toString();
+        }
+      }
+
+      // Serialisasikan answers (ubah XFile menjadi path string)
+      final Map<String, dynamic> serializableAnswers = {};
+      _answers.forEach((key, value) {
+        if (value is XFile) {
+          serializableAnswers[key] = '[FILE_PATH]${value.path}';
+        } else {
+          serializableAnswers[key] = value;
+        }
+      });
+
+      // Simpan ke Sync Queue dan list lokal
+      await pengajuan_service.PengajuanService().tambahPengajuanOffline(
+        jenisSuratId: widget.jenisSuratId.toString(),
+        jenisSuratNama: widget.namaSurat,
+        emoji: _getEmojiForSurat(widget.namaSurat),
+        answers: serializableAnswers,
+        localFormData: localFormData,
+      );
+
       setState(() => _isSubmitting = false);
-      _showErrorDialog('Terjadi kesalahan jaringan atau server terputus. Silakan coba lagi.');
-      debugPrint('Error submit dynamic form: $e');
+      _showSuccessDialog(); // Tetap tampilkan sukses karena sudah tersimpan secara offline
     }
   }
+
 
   // Helper untuk menentukan emoji yang tepat berdasarkan jenis surat
   String _getEmojiForSurat(String namaSurat) {

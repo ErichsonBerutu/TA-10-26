@@ -145,8 +145,8 @@ class PengaduanItem {
   String get statusLabel {
     switch (status) {
       case StatusPengaduan.menunggu: return 'Menunggu';
-      case StatusPengaduan.diproses: return 'Diproses';
-      case StatusPengaduan.selesai:  return 'Selesai';
+      case StatusPengaduan.diproses: return 'Terbaca';
+      case StatusPengaduan.selesai:  return 'Berhasil';
       case StatusPengaduan.ditolak:  return 'Ditolak';
     }
   }
@@ -154,7 +154,7 @@ class PengaduanItem {
   String get statusEmoji {
     switch (status) {
       case StatusPengaduan.menunggu: return '⏳';
-      case StatusPengaduan.diproses: return '🔄';
+      case StatusPengaduan.diproses: return '📖';
       case StatusPengaduan.selesai:  return '✅';
       case StatusPengaduan.ditolak:  return '❌';
     }

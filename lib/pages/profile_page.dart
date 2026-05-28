@@ -36,9 +36,10 @@ class _ProfilePageState extends State<ProfilePage> {
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () {
-              widget.authService.logout();
+            onPressed: () async {
+              await widget.authService.logout();
 
+              if (!mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -47,6 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
+
         ],
       ),
     );

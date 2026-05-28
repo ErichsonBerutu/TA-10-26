@@ -18,6 +18,7 @@ import '../models/pengajuan_model.dart' as model_pengajuan;
 import '../models/pengaduan_model.dart' as model_pengaduan;
 import '../api_config/api_config.dart';
 import 'pdf_preview_page.dart';
+import 'pengaduan_detail_page.dart';
 
 class ArsipPage extends StatefulWidget {
   const ArsipPage({super.key});
@@ -375,7 +376,7 @@ class _ArsipPageState extends State<ArsipPage>
                               letterSpacing: -0.2,
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 6),
                           Text(
                             'No. Registrasi: ${p.id}',
                             style: const TextStyle(
@@ -384,6 +385,27 @@ class _ArsipPageState extends State<ArsipPage>
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          // Show applicant name / NIK if present (mirip layout admin web)
+                          if (p.data.containsKey('nama') || p.data.containsKey('nik')) ...[
+                            Text(
+                              '${p.data['nama'] ?? '-'}',
+                              style: const TextStyle(
+                                color: Color(0xFF334155),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'NIK: ${p.data['nik'] ?? '-'}',
+                              style: const TextStyle(
+                                color: Color(0xFF64748b),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -504,12 +526,12 @@ class _ArsipPageState extends State<ArsipPage>
       model_pengaduan.StatusPengaduan.diproses => (
           const Color(0xFF2563eb),
           const Color(0xFFeff6ff),
-          'Diproses'
+          'Terbaca'
         ),
       model_pengaduan.StatusPengaduan.selesai => (
           const Color(0xFF16a34a),
           const Color(0xFFf0fdf4),
-          'Selesai'
+          'Berhasil'
         ),
       model_pengaduan.StatusPengaduan.ditolak => (
           const Color(0xFFdc2626),
@@ -518,9 +540,16 @@ class _ArsipPageState extends State<ArsipPage>
         ),
     };
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PengaduanDetailPage(pengaduan: p)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFe2e8f0), width: 0.8),
@@ -731,8 +760,9 @@ class _ArsipPageState extends State<ArsipPage>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildComplaintImage(String? path) {
     if (path == null || path.isEmpty) {

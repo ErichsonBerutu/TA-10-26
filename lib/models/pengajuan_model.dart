@@ -125,6 +125,28 @@ class PengajuanSurat {
     if (lower.contains('kelakuan baik') || lower.contains('skck')) return '👮';
     return '📝';
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id_pengajuan_surat': id,
+      'jenis_surat': {
+        'nama_surat': jenisSurat,
+      },
+      'data_form': jsonEncode(data),
+      'created_at': tanggalAjuan.toIso8601String(),
+      'status': status == StatusPengajuan.disetujui
+          ? 'selesai'
+          : status == StatusPengajuan.ditolak
+              ? 'ditolak'
+              : status == StatusPengajuan.diproses
+                  ? 'diproses'
+                  : 'diajukan',
+      'alasan_tolak': alasanTolak,
+      'tanggal_respons': tanggalRespons?.toIso8601String(),
+      'nomor_surat': nomorSurat,
+      'file_pdf': filePdf,
+    };
+  }
 }
 
 // ============================================================

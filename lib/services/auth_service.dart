@@ -132,28 +132,33 @@ class AuthService extends ChangeNotifier {
   // ==================================================
 
   Future<void> logout() async {
-    try {
-      final url = Uri.parse("$baseUrl/logout");
-
-      await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer $_token",
-          "Accept": "application/json",
-        },
-      );
-    } catch (_) {}
+    final tokenToRevoke = _token;
 
     _currentUser = null;
     _token = null;
     _isLoggedIn = false;
 
-    // Hapus dari SharedPreferences
+    // Hapus dari SharedPreferences secara instan
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('auth_user');
+    await prefs.remove('is_login');
 
     notifyListeners();
+
+    // Kirim request ke server asinkron di latar belakang menggunakan copy token
+    if (tokenToRevoke != null) {
+      try {
+        final url = Uri.parse("$baseUrl/logout");
+        http.post(
+          url,
+          headers: {
+            "Authorization": "Bearer $tokenToRevoke",
+            "Accept": "application/json",
+          },
+        );
+      } catch (_) {}
+    }
   }
 
   // ==================================================

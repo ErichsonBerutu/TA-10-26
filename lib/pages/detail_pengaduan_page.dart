@@ -321,7 +321,7 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       case StatusPengaduan.menunggu:
         return '⏳';
       case StatusPengaduan.diproses:
-        return '🔄';
+        return '📖';
       case StatusPengaduan.selesai:
         return '✅';
       case StatusPengaduan.ditolak:
@@ -334,9 +334,9 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       case StatusPengaduan.menunggu:
         return 'Menunggu';
       case StatusPengaduan.diproses:
-        return 'Sedang Diproses';
+        return 'Berhasil Dibaca';
       case StatusPengaduan.selesai:
-        return 'Selesai';
+        return 'Berhasil';
       case StatusPengaduan.ditolak:
         return 'Ditolak';
     }

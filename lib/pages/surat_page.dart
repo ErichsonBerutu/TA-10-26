@@ -1,12 +1,11 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import '../api_config/api_config.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
+import '../services/offline_database_service.dart';
 import 'beranda_page.dart' show BerandaPage;
 import 'pengaduan_page.dart';
 import 'pengumuman_page.dart';
@@ -379,17 +378,28 @@ class _SuratPageState extends State<SuratPage> {
 
   Future<void> _fetchDynamicSurat() async {
     if (!mounted) return;
-    setState(() {
-      _isLoadingDynamic = true;
-      _dynamicError = null;
-    });
+    
+    // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
+    final localData = await OfflineDatabaseService().ambilJenisSurat();
+    if (localData.isNotEmpty) {
+      setState(() {
+        _dynamicSurat = localData;
+        _isLoadingDynamic = false;
+        _dynamicError = null;
+      });
+    } else {
+      setState(() {
+        _isLoadingDynamic = true;
+        _dynamicError = null;
+      });
+    }
 
     try {
       final token = AuthService().token;
       if (token == null) {
         setState(() {
           _isLoadingDynamic = false;
-          _dynamicError = 'Token tidak ditemukan. Silakan login ulang.';
+          _dynamicError = _dynamicSurat.isNotEmpty ? null : 'Token tidak ditemukan. Silakan login ulang.';
         });
         return;
       }
@@ -401,30 +411,39 @@ class _SuratPageState extends State<SuratPage> {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['status'] == true && body['data'] != null) {
+          final List rawData = body['data'];
           setState(() {
-            _dynamicSurat = body['data'];
+            _dynamicSurat = rawData;
             _isLoadingDynamic = false;
+            _dynamicError = null;
           });
+          
+          // 2. Simpan data terbaru ke cache lokal
+          final List<Map<String, dynamic>> cacheList = rawData
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+          await OfflineDatabaseService().simpanJenisSurat(cacheList);
         } else {
           setState(() {
-            _dynamicError = body['message'] ?? 'Gagal memuat surat dinamis.';
+            _dynamicError = _dynamicSurat.isNotEmpty ? null : (body['message'] ?? 'Gagal memuat surat dinamis.');
             _isLoadingDynamic = false;
           });
         }
       } else {
         setState(() {
-          _dynamicError = 'Gagal memuat data dari server (${response.statusCode}).';
+          _dynamicError = _dynamicSurat.isNotEmpty ? null : 'Gagal memuat data dari server (${response.statusCode}).';
           _isLoadingDynamic = false;
         });
       }
     } catch (e) {
       setState(() {
-        _dynamicError = 'Koneksi terputus. Periksa jaringan internet.';
+        // Jika data dari cache sudah ada, jangan tampilkan error layar kosong!
+        _dynamicError = _dynamicSurat.isNotEmpty ? null : 'Koneksi terputus. Periksa jaringan internet.';
         _isLoadingDynamic = false;
       });
       debugPrint('Error fetch dynamic surat: $e');

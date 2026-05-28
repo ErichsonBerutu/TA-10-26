@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/notifikasi_service.dart';
 import '../services/berita_service.dart';
 import '../services/pengumuman_service.dart' as svc_pengumuman;
+import '../services/sync_service.dart';
 import 'notifikasi_page.dart';
 import 'pengumuman_page.dart';
 import 'surat_page.dart';
@@ -234,7 +235,7 @@ const List<SlideItem> slides = [
 ];
 
 const List<LayananItem> layananList = [
-  LayananItem(label: 'Surat', emoji: '📋', color: Color(0xFF2563eb)),
+  LayananItem(label: 'Pengajuan Surat', emoji: '📋', color: Color(0xFF2563eb)),
   LayananItem(label: 'Pengaduan', emoji: '💬', color: Color(0xFFef4444)),
   LayananItem(label: 'Riwayat & Arsip', emoji: '📂', color: Color(0xFF7c3aed)),
   LayananItem(label: 'Pengumuman', emoji: '📣', color: Color(0xFF16a34a)),
@@ -304,6 +305,7 @@ class _BerandaPageState extends State<BerandaPage>
       _notifSvc.startPeriodicFetch(intervalSeconds: 10);
       _beritaSvc.muatBerita(forceRefresh: true);
       _pengumumanSvc.muatPengumuman(forceRefresh: true);
+      SyncService().processSyncQueue(); // Jalankan sinkronisasi antrean offline di latar belakang
     });
 
     _pulseCtrl = AnimationController(
@@ -524,7 +526,7 @@ class _BerandaPageState extends State<BerandaPage>
   // ──────────────────────────────────────────────────────────
 
   void _onLayananTap(LayananItem item, int index) {
-    if (item.label == 'Surat') {
+    if (item.label == 'Pengajuan Surat' || item.label == 'Surat') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const SuratPage()),
@@ -795,6 +797,7 @@ class _BerandaPageState extends State<BerandaPage>
                     _beritaSvc.muatBerita(forceRefresh: true),
                     _pengumumanSvc.muatPengumuman(forceRefresh: true),
                   ]);
+                  await SyncService().processSyncQueue(); // Jalankan sinkronisasi offline saat pull-to-refresh
                 },
                 color: const Color(0xFF2563eb),
                 child: SingleChildScrollView(
@@ -807,7 +810,6 @@ class _BerandaPageState extends State<BerandaPage>
                       _buildCarousel(),
                       _buildDots(),
                       _buildLayananSection(),
-                      _buildStatsBanner(),
                       _buildPengumumanSection(),
                     ],
                   ),

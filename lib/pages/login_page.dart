@@ -64,8 +64,9 @@ class _LoginPageState extends State<LoginPage>
     final prefs = await SharedPreferences.getInstance();
 
     final isLogin = prefs.getBool('is_login') ?? false;
+    final hasToken = prefs.getString('auth_token') != null;
 
-    if (isLogin && mounted) {
+    if (isLogin && hasToken && mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

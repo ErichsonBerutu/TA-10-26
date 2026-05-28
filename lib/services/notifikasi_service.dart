@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import '../api_config/api_config.dart';
 import './auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import './offline_database_service.dart';
 
 // ============================================================
 //  MODEL NOTIFIKASI (dari server)
@@ -140,6 +141,23 @@ class NotifikasiService extends ChangeNotifier {
 
   Future<void> loadNotifikasi({bool forceRefresh = false}) async {
     if (_isFetching) return;
+    
+    // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
+    if (_list.isEmpty || forceRefresh) {
+      await _loadDeletedIds();
+      final localData = await OfflineDatabaseService().ambilNotifikasi();
+      if (localData.isNotEmpty) {
+        _list.clear();
+        final items = localData
+            .map((e) => NotifikasiItem.fromJson(e))
+            .where((n) => !_deletedIds.contains(n.id))
+            .toList();
+        _list.addAll(items);
+        _isLoaded = true;
+        notifyListeners();
+      }
+    }
+
     if (_isLoaded && !forceRefresh) return;
 
     _isFetching = true;
@@ -167,14 +185,25 @@ class NotifikasiService extends ChangeNotifier {
         final body = jsonDecode(response.body);
         if (body['status'] == 'success' && body['data'] != null) {
           final List rawList = body['data'] as List;
+          
           _list.clear();
+          final List<Map<String, dynamic>> cacheList = [];
           
           final items = rawList
-              .map((e) => NotifikasiItem.fromJson(e as Map<String, dynamic>))
+              .map((e) {
+                if (e is Map<String, dynamic>) {
+                  cacheList.add(e);
+                  return NotifikasiItem.fromJson(e);
+                }
+                return NotifikasiItem.fromJson(Map<String, dynamic>.from(e));
+              })
               .where((n) => !_deletedIds.contains(n.id))
               .toList();
 
           _list.addAll(items);
+
+          // 2. Simpan ke database lokal (Update Cache)
+          await OfflineDatabaseService().simpanNotifikasi(cacheList);
         }
       }
     } catch (e) {

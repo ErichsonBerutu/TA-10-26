@@ -1,12 +1,14 @@
 // lib/services/pengaduan_service.dart
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_config/api_config.dart';
 import '../models/pengaduan_model.dart';
 import 'auth_service.dart';
+import './offline_database_service.dart';
 
 class PengaduanService extends ChangeNotifier {
   static final PengaduanService _instance = PengaduanService._internal();
@@ -38,11 +40,57 @@ class PengaduanService extends ChangeNotifier {
     return prefs.getString('auth_token');
   }
 
+  JenisPengaduan _parseJenis(String value) {
+    switch (value.toLowerCase()) {
+      case 'infrastruktur':
+        return JenisPengaduan.infrastruktur;
+      case 'pelayanan':
+        return JenisPengaduan.pelayanan;
+      case 'keamanan':
+        return JenisPengaduan.keamanan;
+      case 'lingkungan':
+        return JenisPengaduan.lingkungan;
+      default:
+        return JenisPengaduan.infrastruktur;
+    }
+  }
+
   Future<bool> muatRiwayatPengaduan() async {
     final token = await _getAuthToken();
     if (token == null) {
       return false;
     }
+
+    // 1. Ambil data dari cache lokal & antrean offline (Local-First Read)
+    final localData = await OfflineDatabaseService().ambilPengaduan();
+    final queue = await OfflineDatabaseService().ambilSyncQueue();
+    final pendingItems = queue
+        .where((item) => item['action'] == 'tambah_pengaduan')
+        .map((item) {
+          final payload = Map<String, dynamic>.from(item['payload']);
+          final jenisStr = payload['jenis']?.toString() ?? 'infrastruktur';
+          return PengaduanItem(
+            id: item['id']?.toString() ?? 'PDG-PENDING-${DateTime.now().millisecondsSinceEpoch}',
+            judul: payload['judul']?.toString() ?? '',
+            deskripsi: payload['deskripsi']?.toString() ?? '',
+            jenis: _parseJenis(jenisStr),
+            tanggalAjuan: DateTime.tryParse(item['timestamp']?.toString() ?? '') ?? DateTime.now(),
+            fotoPath: payload['fotoPath']?.toString(),
+            status: StatusPengaduan.menunggu,
+            catatanAdmin: 'Menunggu sinkronisasi internet... 🔄',
+          );
+        })
+        .toList();
+
+    _list.clear();
+    _list.addAll(pendingItems); // Tampilkan item pending di paling atas
+
+    if (localData.isNotEmpty) {
+      _list.addAll(
+        localData.map((item) => PengaduanItem.fromJson(item)).toList(),
+      );
+    }
+    notifyListeners();
 
     final url = Uri.parse('$baseUrl/pengaduan');
 
@@ -53,37 +101,37 @@ class PengaduanService extends ChangeNotifier {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode != 200) {
-        return false;
-      }
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final rawList = body is List
+            ? body
+            : body['data'] ?? body['pengaduan'] ?? [];
 
-      final body = jsonDecode(response.body);
-      final rawList = body is List
-          ? body
-          : body['data'] ?? body['pengaduan'] ?? [];
-
-      if (rawList is! List) {
-        return false;
-      }
-
-      _list.clear();
-      _list.addAll(
-        rawList.map((item) {
-          if (item is Map<String, dynamic>) {
-            return PengaduanItem.fromJson(item);
+        if (rawList is List) {
+          final List<Map<String, dynamic>> cacheList = [];
+          
+          _list.clear();
+          _list.addAll(pendingItems); // Tetap pertahankan item pending di atas
+          
+          for (var item in rawList) {
+            if (item is Map<String, dynamic>) {
+              _list.add(PengaduanItem.fromJson(item));
+              cacheList.add(item);
+            }
           }
-          return PengaduanItem.fromJson(
-            Map<String, dynamic>.from(item),
-          );
-        }).toList(),
-      );
-      notifyListeners();
-      return true;
+          
+          // 2. Simpan data terbaru ke cache
+          await OfflineDatabaseService().simpanPengaduan(cacheList);
+          notifyListeners();
+          return true;
+        }
+      }
+      return true; // Kembalikan true karena data lokal sudah tampil
     } catch (e) {
       debugPrint('ERROR muatRiwayatPengaduan: $e');
-      return false;
+      return true; // Kembalikan true karena data lokal sudah tampil
     }
   }
 
@@ -119,7 +167,7 @@ class PengaduanService extends ChangeNotifier {
           debugPrint('Unable to attach foto: $e');
         }
 
-        final streamed = await request.send();
+        final streamed = await request.send().timeout(const Duration(seconds: 15));
         response = await http.Response.fromStream(streamed);
       } else {
         response = await http.post(
@@ -134,11 +182,12 @@ class PengaduanService extends ChangeNotifier {
             'deskripsi': deskripsi,
             'jenis': PengaduanItem.jenisToString(jenis),
           }),
-        );
+        ).timeout(const Duration(seconds: 15));
       }
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        return false;
+        // Gagal server, lempar error agar ditangani sebagai fallback offline jika terindikasi timeout/network
+        throw SocketException('Server error response code');
       }
 
       final data = jsonDecode(response.body);
@@ -162,11 +211,44 @@ class PengaduanService extends ChangeNotifier {
         );
       }
 
+      // Update cache
+      final cacheData = _list
+          .where((p) => !p.id.startsWith('SYNC-'))
+          .map((p) => p.toJson())
+          .toList();
+      await OfflineDatabaseService().simpanPengaduan(cacheData);
+
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('ERROR kirimPengaduan: $e');
-      return false;
+      debugPrint('Koneksi bermasalah, menyimpan Pengaduan ke Antrean Sync Latar Belakang: $e');
+
+      // ── ARSITEKTUR OFFLINE-FIRST: Simpan ke antrean lokal ──
+      await OfflineDatabaseService().tambahKeSyncQueue(
+        action: 'tambah_pengaduan',
+        payload: {
+          'judul': judul,
+          'deskripsi': deskripsi,
+          'jenis': PengaduanItem.jenisToString(jenis),
+          'fotoPath': fotoPath,
+        },
+      );
+
+      // Masukkan item sementara ke memory list agar langsung tampil di UI
+      final pendingItem = PengaduanItem(
+        id: 'SYNC-${DateTime.now().millisecondsSinceEpoch}',
+        judul: judul,
+        deskripsi: deskripsi,
+        jenis: jenis,
+        tanggalAjuan: DateTime.now(),
+        fotoPath: fotoPath,
+        status: StatusPengaduan.menunggu,
+        catatanAdmin: 'Menunggu sinkronisasi internet... 🔄',
+      );
+      _list.insert(0, pendingItem);
+      
+      notifyListeners();
+      return true; // Kembalikan true karena berhasil ditangani secara offline
     }
   }
 

@@ -12,16 +12,11 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final navItems = [
       (item: AppNavItem.beranda, label: 'Beranda', icon: Icons.home_rounded),
-      (item: AppNavItem.surat, label: 'Surat', icon: Icons.description_rounded),
+      (item: AppNavItem.surat, label: 'Pengajuan Surat', icon: Icons.description_rounded),
       (
         item: AppNavItem.pengaduan,
         label: 'Pengaduan',
         icon: Icons.chat_bubble_rounded,
-      ),
-      (
-        item: AppNavItem.pengumuman,
-        label: 'Pengumuman',
-        icon: Icons.campaign_rounded,
       ),
       (item: AppNavItem.profil, label: 'Profil', icon: Icons.person_rounded),
     ];
