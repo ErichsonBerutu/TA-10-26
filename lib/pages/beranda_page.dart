@@ -6,6 +6,7 @@ import '../services/notifikasi_service.dart';
 import '../services/berita_service.dart';
 import '../services/pengumuman_service.dart' as svc_pengumuman;
 import '../services/sync_service.dart';
+import '../services/fcm_service.dart';
 import 'notifikasi_page.dart';
 import 'pengumuman_page.dart';
 import 'surat_page.dart';
@@ -301,7 +302,8 @@ class _BerandaPageState extends State<BerandaPage>
     _pengumumanSvc.addListener(_refresh);
 
     // Fetch notifikasi, berita, & pengumuman dari server saat beranda dibuka
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await FcmService().initialize(); // Inisialisasi FCM Service saat beranda terbuka
       _notifSvc.startPeriodicFetch(intervalSeconds: 10);
       _beritaSvc.muatBerita(forceRefresh: true);
       _pengumumanSvc.muatPengumuman(forceRefresh: true);
@@ -1899,7 +1901,7 @@ class _BerandaPageState extends State<BerandaPage>
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
           child: Row(
             children: [
               Container(
@@ -1910,14 +1912,15 @@ class _BerandaPageState extends State<BerandaPage>
                 ),
                 child: Icon(icon, color: Colors.white, size: 18),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   item.label,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
-                    fontSize: 14,
+                    fontSize: 12.5,
+                    height: 1.2,
                   ),
                 ),
               ),

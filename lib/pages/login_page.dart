@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
+import '../services/fcm_service.dart';
 import 'beranda_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -67,6 +68,12 @@ class _LoginPageState extends State<LoginPage>
     final hasToken = prefs.getString('auth_token') != null;
 
     if (isLogin && hasToken && mounted) {
+      // Restore auth state, lalu init FCM
+      await AuthService().checkLoginStatus();
+      final fcm = FcmService();
+      await fcm.initialize();
+      await fcm.registerToken();
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -120,6 +127,11 @@ class _LoginPageState extends State<LoginPage>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_login', true);
       await prefs.setString('nik', _nikCtrl.text.trim());
+
+      // Inisialisasi FCM dan daftarkan token ke server
+      final fcm = FcmService();
+      await fcm.initialize();
+      await fcm.registerToken();
 
       Navigator.pushReplacement(
         context,

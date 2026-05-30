@@ -254,82 +254,106 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
     );
   }
 
-  // ── Detail Sheet ───────────────────────────────────────────
+  // ── Detail Dialog ───────────────────────────────────────────
 
   void _showDetail(NotifikasiItem notif) {
-    showModalBottomSheet(
+    final color = _getColor(notif.tipe);
+    showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        elevation: 10,
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Large elegant icon with background circle
+              Container(
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Text(notif.ikon, style: const TextStyle(fontSize: 32)),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notif.judul,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          color: Color(0xFF1e293b),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatWaktu(notif.waktu),
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                      ),
-                    ],
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.2),
+                    width: 2,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(color: Color(0xFFe2e8f0)),
-            const SizedBox(height: 8),
-            Text(
-              notif.pesan,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.6),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1e40af),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Tutup',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Center(
+                  child: Text(
+                    notif.ikon,
+                    style: const TextStyle(fontSize: 36),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              // Centered Title
+              Text(
+                notif.judul,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
+                  color: Color(0xFF1e293b),
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Centered Time
+              Text(
+                _formatWaktu(notif.waktu),
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Subtle Divider
+              const Divider(color: Color(0xFFe2e8f0), height: 1),
+              const SizedBox(height: 16),
+              // Centered message, highly readable
+              Text(
+                notif.pesan,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  color: Color(0xFF475569),
+                  height: 1.6,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // TUTUP button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e40af),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

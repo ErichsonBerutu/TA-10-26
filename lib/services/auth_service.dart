@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_config/api_config.dart';
 import '../models/user_model.dart';
+import './fcm_service.dart';
 
 class LoginResult {
   final bool success;
@@ -134,6 +135,11 @@ class AuthService extends ChangeNotifier {
   Future<void> logout() async {
     final tokenToRevoke = _token;
 
+    // Hapus FCM token sebelum logout (stop push notification)
+    try {
+      await FcmService().removeToken();
+    } catch (_) {}
+
     _currentUser = null;
     _token = null;
     _isLoggedIn = false;
@@ -160,6 +166,7 @@ class AuthService extends ChangeNotifier {
       } catch (_) {}
     }
   }
+
 
   // ==================================================
   // UPDATE PROFILE
