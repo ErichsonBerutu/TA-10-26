@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../models/pengaduan_model.dart';
 import '../models/respons_model.dart';
 import '../services/respons_service.dart';
-import '../services/pdf_service.dart';
 import '../api_config/api_config.dart';
 
 // ============================================================
@@ -267,37 +266,6 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
               }).toList(),
             ),
           const SizedBox(height: 24),
-          
-          // Tombol Unduh Resi Pengaduan (PDF)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  await PdfService().downloadComplaint(context, widget.pengaduan);
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal mengunduh resi: $e')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.receipt_long_rounded, size: 18),
-              label: const Text(
-                'Unduh Resi Pengaduan (PDF)',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0f766e), // Teal color
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );

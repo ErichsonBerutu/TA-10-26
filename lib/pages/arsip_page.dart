@@ -13,7 +13,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/pengajuan_service.dart';
 import '../services/pengaduan_service.dart';
-import '../services/pdf_service.dart';
 import '../models/pengajuan_model.dart' as model_pengajuan;
 import '../models/pengaduan_model.dart' as model_pengaduan;
 import '../api_config/api_config.dart';
@@ -718,43 +717,6 @@ class _ArsipPageState extends State<ArsipPage>
                     ),
                   ),
                 ],
-
-                // Action download PDF receipt
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          try {
-                            await PdfService().downloadComplaint(context, p);
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Gagal mengunduh resi: $e'),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.receipt_long_rounded, size: 15),
-                        label: const Text(
-                          'Unduh Bukti Resi PDF',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 11.5),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1e40af),
-                          side: const BorderSide(
-                              color: Color(0xFFbfdbfe), width: 1.2),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
