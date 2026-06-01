@@ -8,10 +8,14 @@
 //   printing: ^5.12.0
 
 import 'dart:typed_data';
-import 'package:flutter/material.dart' show BuildContext;
+import 'package:flutter/material.dart' show BuildContext, debugPrint;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:http/http.dart' as http;
+import '../api_config/api_config.dart';
+import './auth_service.dart';
 import '../models/pengajuan_model.dart';
 
 class PdfService {
@@ -19,18 +23,16 @@ class PdfService {
   factory PdfService() => _instance;
   PdfService._internal();
 
-  // ── Warna ──────────────────────────────────────────────
-  static final _primaryColor  = PdfColor.fromHex('1e40af');
-  static final _textColor     = PdfColor.fromHex('1e293b');
-  static final _mutedColor    = PdfColor.fromHex('64748b');
-  static final _bgLight       = PdfColor.fromHex('f8fafc');
 
   // ── Label map (key form → label tampil di surat) ───────
   static const _labelMap = {
     'nik'             : 'NIK',
-    'nama'            : 'Nama Lengkap',
-    'ttl'             : 'Tempat / Tgl. Lahir',
+    'nama'            : 'Nama',
+    'nama_lengkap'    : 'Nama',
+    'ttl'             : 'Tempat/Tgl. Lahir',
+    'tempat_tanggal_lahir': 'Tempat/Tgl. Lahir',
     'jk'              : 'Jenis Kelamin',
+    'jenis_kelamin'   : 'Jenis Kelamin',
     'alamat'          : 'Alamat',
     'keperluan'       : 'Keperluan',
     'nama_usaha'      : 'Nama Usaha',
@@ -54,7 +56,83 @@ class PdfService {
     'penyebab'        : 'Penyebab Kematian',
     'pelapor'         : 'Nama Pelapor',
     'hubungan'        : 'Hubungan dg Almarhum',
+    'nomor_kk'        : 'No. KK',
+    'no_kk'           : 'No. KK',
   };
+
+  // ── Normalisasi & Pengurutan Data ────────────────────────
+  Map<String, String> _normalizeData(Map<String, String> data) {
+    final normalized = <String, String>{};
+    
+    data.forEach((k, v) {
+      normalized[k.toLowerCase()] = v;
+    });
+
+    // Combine tempat_lahir and tgl_lahir / tanggal_lahir if both exist
+    String? tl = normalized['tempat_lahir'] ?? normalized['tempat'];
+    String? tgl = normalized['tgl_lahir'] ?? normalized['tgl'] ?? normalized['tanggal_lahir'];
+    
+    if (tl != null || tgl != null) {
+      final tlStr = tl ?? '-';
+      final tglStr = tgl ?? '-';
+      normalized['ttl'] = '$tlStr, $tglStr';
+      
+      normalized.remove('tempat_lahir');
+      normalized.remove('tempat');
+      normalized.remove('tgl_lahir');
+      normalized.remove('tgl');
+      normalized.remove('tanggal_lahir');
+    }
+
+    if (normalized.containsKey('nama_lengkap') && normalized.containsKey('nama')) {
+      normalized.remove('nama_lengkap');
+    }
+    if (normalized.containsKey('no_kk') && normalized.containsKey('nomor_kk')) {
+      normalized.remove('nomor_kk');
+    }
+
+    return normalized;
+  }
+
+  List<MapEntry<String, String>> _getSortedData(Map<String, String> data) {
+    final normalized = _normalizeData(data);
+    final keys = normalized.keys.toList();
+    const order = [
+      'nama',
+      'nama_lengkap',
+      'nomor_kk',
+      'no_kk',
+      'nik',
+      'ttl',
+      'tempat_tanggal_lahir',
+      'jk',
+      'jenis_kelamin',
+      'pekerjaan',
+      'alamat',
+    ];
+    
+    keys.sort((a, b) {
+      final ia = order.indexOf(a.toLowerCase());
+      final ib = order.indexOf(b.toLowerCase());
+      if (ia != -1 && ib != -1) return ia.compareTo(ib);
+      if (ia != -1) return -1;
+      if (ib != -1) return 1;
+      return a.compareTo(b);
+    });
+
+    return keys.map((k) => MapEntry(k, normalized[k]!)).toList();
+  }
+
+  String _getAbbreviation(String jenisSurat) {
+    final lower = jenisSurat.toLowerCase();
+    if (lower.contains('domisili')) return 'SKD';
+    if (lower.contains('usaha')) return 'SKU';
+    if (lower.contains('tidak mampu')) return 'SKTM';
+    if (lower.contains('nikah') || lower.contains('pengantar')) return 'SPN';
+    if (lower.contains('lahir')) return 'SKKL';
+    if (lower.contains('kematian')) return 'SKKM';
+    return 'SURAT';
+  }
 
   // ── Format tanggal Indonesia ───────────────────────────
   String _fmt(DateTime dt) {
@@ -73,11 +151,20 @@ class PdfService {
       creator : 'Sistem Administrasi Kependudukan',
     );
 
-    // Load Google Fonts (Noto Sans support karakter Indonesia)
+    // Load Google Fonts
     final fontRegular = await PdfGoogleFonts.notoSansRegular();
     final fontBold    = await PdfGoogleFonts.notoSansBold();
 
     final tglSurat = _fmt(pengajuan.tanggalRespons ?? DateTime.now());
+
+    // Load Logo Image Asset
+    pw.MemoryImage? logoImage;
+    try {
+      final logoBytes = await rootBundle.load('assets/images/logo.png');
+      logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    } catch (e) {
+      debugPrint("Gagal memuat logo: $e");
+    }
 
     doc.addPage(
       pw.Page(
@@ -86,12 +173,12 @@ class PdfService {
         build: (ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _buildKopSurat(fontRegular, fontBold),
+            _buildKopSurat(logoImage, fontRegular, fontBold),
             pw.SizedBox(height: 10),
             // Garis ganda kop surat
-            pw.Container(height: 2.5, color: _primaryColor),
-            pw.SizedBox(height: 2),
-            pw.Container(height: 0.8, color: _primaryColor),
+            pw.Container(height: 2.2, color: PdfColors.black),
+            pw.SizedBox(height: 1.5),
+            pw.Container(height: 0.8, color: PdfColors.black),
             pw.SizedBox(height: 22),
             _buildJudulSurat(pengajuan, fontBold),
             pw.SizedBox(height: 22),
@@ -99,7 +186,7 @@ class PdfService {
             pw.SizedBox(height: 14),
             _buildDataRows(pengajuan, fontRegular, fontBold),
             pw.SizedBox(height: 16),
-            _buildPenutup(pengajuan, tglSurat, fontRegular),
+            _buildPenutup(pengajuan, fontRegular),
             pw.SizedBox(height: 36),
             _buildTandaTangan(tglSurat, fontRegular, fontBold),
           ],
@@ -111,51 +198,42 @@ class PdfService {
   }
 
   // ── KOP SURAT ──────────────────────────────────────────
-  pw.Widget _buildKopSurat(pw.Font fontRegular, pw.Font fontBold) {
+  pw.Widget _buildKopSurat(pw.MemoryImage? logoImage, pw.Font fontRegular, pw.Font fontBold) {
     return pw.Row(
-      mainAxisAlignment: pw.MainAxisAlignment.center,
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        // Logo placeholder (lingkaran biru)
-        pw.Container(
-          width: 64, height: 64,
-          decoration: pw.BoxDecoration(
-            color: _primaryColor,
-            shape: pw.BoxShape.circle,
-          ),
-          child: pw.Center(
-            child: pw.Text(
-              'HM',
-              style: pw.TextStyle(
-                font     : fontBold,
-                fontSize : 18,
-                color    : PdfColors.white,
+        if (logoImage != null)
+          pw.Image(logoImage, width: 65, height: 65)
+        else
+          pw.Container(width: 65, height: 65),
+        pw.SizedBox(width: 15),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Text(
+                'PEMERINTAH KABUPATEN TOBA',
+                style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.black),
               ),
-            ),
-          ),
-        ),
-        pw.SizedBox(width: 18),
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
-          children: [
-            pw.Text(
-              'PEMERINTAH DESA HUTABULU MEJAN',
-              style: pw.TextStyle(
-                font        : fontBold,
-                fontSize    : 14,
-                color       : _primaryColor,
-                letterSpacing: 0.6,
+              pw.Text(
+                'KECAMATAN BALIGE',
+                style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.black),
               ),
-            ),
-            pw.SizedBox(height: 3),
-            pw.Text(
-              'Kecamatan ..., Kabupaten ..., Provinsi Sumatera Utara',
-              style: pw.TextStyle(font: fontRegular, fontSize: 10, color: _mutedColor),
-            ),
-            pw.Text(
-              'Kode Pos: 22xxx   |   Telp: (0xxx) xxxxx   |   Email: desa@hutabulumejan.go.id',
-              style: pw.TextStyle(font: fontRegular, fontSize: 9, color: _mutedColor),
-            ),
-          ],
+              pw.Text(
+                'DESA HUTABULU MEJAN',
+                style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.black, letterSpacing: 0.5),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Jl. Hutabulu Mejan, Kode Pos : 22312, Website : www.hutabulumejan.desa.id',
+                style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.black),
+              ),
+              pw.Text(
+                'www.desahutabulumejan.id',
+                style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.black),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -170,16 +248,16 @@ class PdfService {
             p.jenisSurat.toUpperCase(),
             style: pw.TextStyle(
               font       : fontBold,
-              fontSize   : 13,
-              color      : _textColor,
+              fontSize   : 14,
+              color      : PdfColors.black,
               decoration : pw.TextDecoration.underline,
               letterSpacing: 1,
             ),
           ),
           pw.SizedBox(height: 5),
           pw.Text(
-            'Nomor : ${p.id} / DESA / ${DateTime.now().year}',
-            style: pw.TextStyle(fontSize: 10.5, color: _mutedColor),
+            'Nomor : ${p.nomorSurat ?? '${p.id}/${_getAbbreviation(p.jenisSurat)}/HM/${DateTime.now().year}'}',
+            style: pw.TextStyle(fontSize: 11, color: PdfColors.black),
           ),
         ],
       ),
@@ -189,10 +267,9 @@ class PdfService {
   // ── KALIMAT PEMBUKA ────────────────────────────────────
   pw.Widget _buildPembukaan(pw.Font fontRegular) {
     return pw.Text(
-      'Yang bertanda tangan di bawah ini, Kepala Desa Hutabulu Mejan, '
-      'Kecamatan ..., Kabupaten ..., Provinsi Sumatera Utara, '
-      'dengan ini menerangkan dengan sesungguhnya bahwa:',
-      style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 3.5),
+      'Yang bertanda tangan dibawah ini, Kepala Desa Hutabulu Mejan, '
+      'KECAMATAN BALIGE, KABUPATEN TOBA menerangkan bahwa :',
+      style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 4),
       textAlign: pw.TextAlign.justify,
     );
   }
@@ -203,32 +280,38 @@ class PdfService {
     pw.Font fontRegular,
     pw.Font fontBold,
   ) {
+    final sortedEntries = _getSortedData(p.data);
     return pw.Container(
-      margin   : const pw.EdgeInsets.only(left: 20),
-      padding  : const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
-        color : _bgLight,
-        border: pw.Border.all(color: PdfColor.fromHex('e2e8f0'), width: 0.8),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-      ),
+      margin: const pw.EdgeInsets.only(left: 20, right: 20),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: p.data.entries.map((e) {
+        children: sortedEntries.map((e) {
           final label = _labelMap[e.key] ?? e.key;
+          final value = e.value.toUpperCase();
+          final isNameField = e.key.toLowerCase().contains('nama');
+          final valueFont = isNameField ? fontBold : fontRegular;
+
           return pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(vertical: 3),
+            padding: const pw.EdgeInsets.symmetric(vertical: 4),
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.SizedBox(
-                  width: 145,
-                  child: pw.Text(label,
-                      style: pw.TextStyle(font: fontRegular, fontSize: 11, color: _mutedColor)),
+                  width: 140,
+                  child: pw.Text(
+                    label,
+                    style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black),
+                  ),
                 ),
-                pw.Text(':  ', style: pw.TextStyle(fontSize: 11, color: _mutedColor)),
+                pw.Text(
+                  ': ',
+                  style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black),
+                ),
                 pw.Expanded(
-                  child: pw.Text(e.value,
-                      style: pw.TextStyle(font: fontBold, fontSize: 11, color: _textColor)),
+                  child: pw.Text(
+                    value,
+                    style: pw.TextStyle(font: valueFont, fontSize: 11, color: PdfColors.black),
+                  ),
                 ),
               ],
             ),
@@ -239,10 +322,35 @@ class PdfService {
   }
 
   // ── KALIMAT PENUTUP (berbeda per jenis surat) ──────────
-  pw.Widget _buildPenutup(PengajuanSurat p, String tglSurat, pw.Font fontRegular) {
+  pw.Widget _buildPenutup(PengajuanSurat p, pw.Font fontRegular) {
     final jenis = p.jenisSurat.toLowerCase();
-    String penutup;
+    
+    if (jenis.contains('tidak mampu')) {
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Nama tersebut diatas adalah benar Penduduk Desa Hutabulu Mejan dan nama tersebut diatas merupakan keluarga Tidak Mampu.',
+            style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 4),
+            textAlign: pw.TextAlign.justify,
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text(
+            'Surat Keterangan Tidak Mampu ini dibuat untuk dipergunakan sebagai keperluan yang dibutuhkan.',
+            style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 4),
+            textAlign: pw.TextAlign.justify,
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text(
+            'Demikianlah Surat Keterangan Tidak Mampu ini dibuat agar dapat dipergunakan sebagaimana mestinya.',
+            style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 4),
+            textAlign: pw.TextAlign.justify,
+          ),
+        ],
+      );
+    }
 
+    String penutup;
     if (jenis.contains('domisili')) {
       penutup =
           'Demikian Surat Keterangan Domisili ini kami buat dengan sebenarnya '
@@ -251,11 +359,6 @@ class PdfService {
       penutup =
           'Demikian Surat Keterangan Usaha ini kami buat dengan sebenarnya '
           'untuk dapat dipergunakan sebagaimana mestinya oleh yang bersangkutan.';
-    } else if (jenis.contains('tidak mampu')) {
-      penutup =
-          'Demikian Surat Keterangan Tidak Mampu ini kami buat untuk dipergunakan '
-          'sebagaimana mestinya, khususnya dalam rangka memperoleh layanan sosial '
-          'dan pendidikan yang dibutuhkan.';
     } else if (jenis.contains('nikah') || jenis.contains('pengantar')) {
       penutup =
           'Demikian Surat Pengantar Nikah ini kami buat untuk dapat dipergunakan '
@@ -276,25 +379,10 @@ class PdfService {
           'untuk dapat dipergunakan sebagaimana mestinya.';
     }
 
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          penutup,
-          style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 3.5),
-          textAlign: pw.TextAlign.justify,
-        ),
-        pw.SizedBox(height: 10),
-        pw.Text(
-          'Dikeluarkan di : Hutabulu Mejan',
-          style: pw.TextStyle(font: fontRegular, fontSize: 11),
-        ),
-        pw.SizedBox(height: 3),
-        pw.Text(
-          'Pada tanggal   : $tglSurat',
-          style: pw.TextStyle(font: fontRegular, fontSize: 11),
-        ),
-      ],
+    return pw.Text(
+      penutup,
+      style: pw.TextStyle(font: fontRegular, fontSize: 11, lineSpacing: 4),
+      textAlign: pw.TextAlign.justify,
     );
   }
 
@@ -304,27 +392,43 @@ class PdfService {
       mainAxisAlignment: pw.MainAxisAlignment.end,
       children: [
         pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Kepala Desa Hutabulu Mejan,',
-                style: pw.TextStyle(font: fontRegular, fontSize: 11)),
-            pw.SizedBox(height: 4),
-            pw.Text(tglSurat,
-                style: pw.TextStyle(font: fontRegular, fontSize: 11)),
-            pw.SizedBox(height: 56),
-            pw.Container(
-              width: 160, height: 1.2,
-              color: _textColor,
+            pw.Row(
+              children: [
+                pw.SizedBox(width: 90, child: pw.Text('Dikeluarkan di', style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black))),
+                pw.Text(': Desa Hutabulu Mejan', style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black)),
+              ],
             ),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              '( ......................................... )',
-              style: pw.TextStyle(font: fontRegular, fontSize: 11),
+            pw.SizedBox(height: 3),
+            pw.Row(
+              children: [
+                pw.SizedBox(width: 90, child: pw.Text('Pada Tanggal', style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black))),
+                pw.Text(': $tglSurat', style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black)),
+              ],
             ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              'NIP: .......................................',
-              style: pw.TextStyle(font: fontRegular, fontSize: 10, color: _mutedColor),
+            pw.SizedBox(height: 8),
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(left: 30),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'Kepala Desa Hutabulu Mejan',
+                    style: pw.TextStyle(font: fontRegular, fontSize: 11, color: PdfColors.black),
+                  ),
+                  pw.SizedBox(height: 65),
+                  pw.Text(
+                    'KEPALA DESA HUTABULU MEJAN',
+                    style: pw.TextStyle(
+                      font      : fontBold,
+                      fontSize  : 11,
+                      color     : PdfColors.black,
+                      decoration: pw.TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -343,5 +447,44 @@ class PdfService {
       name     : '${pengajuan.jenisSurat} - ${pengajuan.id}',
       format   : PdfPageFormat.a4,
     );
+  }
+
+  // ── DOWNLOAD OFFICIAL SIGNED PDF FROM SERVER ─────────
+  Future<void> downloadOfficialPdfFromServer(
+    BuildContext context,
+    String pengajuanId,
+    String filename,
+  ) async {
+    final token = AuthService().token;
+    if (token == null) {
+      debugPrint("downloadOfficialPdfFromServer: token is null");
+      return;
+    }
+
+    try {
+      final url = Uri.parse("${ApiConfig.baseUrl}/surat/$pengajuanId/download");
+      final response = await http.get(
+        url,
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        await Printing.layoutPdf(
+          onLayout: (_) async => bytes,
+          name: filename,
+          format: PdfPageFormat.a4,
+        );
+      } else {
+        debugPrint("downloadOfficialPdfFromServer error: ${response.statusCode} - ${response.body}");
+        throw Exception("Gagal mengunduh file resmi dari server.");
+      }
+    } catch (e) {
+      debugPrint("Exception in downloadOfficialPdfFromServer: $e");
+      rethrow;
+    }
   }
 }

@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import 'beranda_page.dart';
+import '../services/auth_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -39,11 +41,40 @@ class _SplashPageState extends State<SplashPage>
       CurvedAnimation(parent: _ctrl, curve: const Interval(0.2, 0.8, curve: Curves.easeOut)),
     );
 
-    _ctrl.forward();
+_ctrl.forward();
 
-    // Setelah 2.5 detik, pindah ke login
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (!mounted) return;
+    // Cek status login, lalu arahkan ke halaman yang sesuai
+    _checkLoginAndNavigate();
+  }
+
+  // ======================================================
+  // CEK LOGIN DAN NAVIGASI
+  // ======================================================
+
+  Future<void> _checkLoginAndNavigate() async {
+    final authService = AuthService();
+    await authService.checkLoginStatus();
+
+    if (!mounted) return;
+
+    // Tunda 2.5 detik untuk animasi splash
+    await Future.delayed(const Duration(milliseconds: 2000));
+
+    if (!mounted) return;
+
+    if (authService.isLoggedIn && authService.currentUser != null) {
+      // Sudah login, langsung ke beranda
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 600),
+          pageBuilder: (_, __, ___) => const BerandaPage(),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+        ),
+      );
+    } else {
+      // Belum login, ke halaman login
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -53,7 +84,7 @@ class _SplashPageState extends State<SplashPage>
               FadeTransition(opacity: anim, child: child),
         ),
       );
-    });
+    }
   }
 
   @override

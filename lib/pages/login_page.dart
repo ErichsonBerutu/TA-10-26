@@ -1,12 +1,11 @@
 // lib/pages/login_page.dart
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'register_page.dart';
+import '../services/auth_service.dart';
+import '../services/fcm_service.dart';
 import 'beranda_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -25,22 +24,16 @@ class _LoginPageState extends State<LoginPage>
 
   bool _showPass = false;
   bool _isLoading = false;
-  bool _rememberMe = false;
 
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  // ===============================
-  // GANTI IP SESUAI LAPTOP KAMU
-  // Emulator Android = 10.0.2.2
-  // HP Asli WiFi sama = IP Laptop
-  // ===============================
-  final String baseUrl = 'http://172.27.69.178:8000/api';
-
   @override
   void initState() {
     super.initState();
+
+    _checkLoginStatus();
 
     _animCtrl = AnimationController(
       vsync: this,
@@ -65,6 +58,31 @@ class _LoginPageState extends State<LoginPage>
     _animCtrl.forward();
   }
 
+  // =====================================
+  // AUTO LOGIN (SEPERTI FB / IG)
+  // =====================================
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final isLogin = prefs.getBool('is_login') ?? false;
+    final hasToken = prefs.getString('auth_token') != null;
+
+    if (isLogin && hasToken && mounted) {
+      // Restore auth state, lalu init FCM
+      await AuthService().checkLoginStatus();
+      final fcm = FcmService();
+      await fcm.initialize();
+      await fcm.registerToken();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BerandaPage(),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _animCtrl.dispose();
@@ -73,9 +91,9 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
-  // ======================================================
+  // =====================================
   // LOGIN API
-  // ======================================================
+  // =====================================
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -83,58 +101,42 @@ class _LoginPageState extends State<LoginPage>
 
     setState(() => _isLoading = true);
 
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {
-          'Accept': 'application/json',
-        },
-        body: {
-          'nik': _nikCtrl.text.trim(),
-          'password': _passCtrl.text.trim(),
-        },
-      );
+    final authService = AuthService();
+    final result = await authService.login(
+      _nikCtrl.text.trim(),
+      _passCtrl.text.trim(),
+    );
 
-      final data = jsonDecode(response.body);
+    if (!mounted) return;
 
-      if (!mounted) return;
+    final isConnectionError = result.message.contains('Koneksi terputus');
+    final snackColor = result.success
+        ? Colors.green
+        : isConnectionError
+            ? Colors.orange
+            : Colors.red;
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login berhasil'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: snackColor,
+      ),
+    );
 
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 500),
-            pageBuilder: (_, __, ___) => const BerandaPage(),
-            transitionsBuilder: (_, anim, __, child) {
-              return FadeTransition(
-                opacity: anim,
-                child: child,
-              );
-            },
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Login gagal'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
+    if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_login', true);
+      await prefs.setString('nik', _nikCtrl.text.trim());
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak dapat terhubung ke server'),
-          backgroundColor: Colors.orange,
+      // Inisialisasi FCM dan daftarkan token ke server
+      final fcm = FcmService();
+      await fcm.initialize();
+      await fcm.registerToken();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BerandaPage(),
         ),
       );
     }
@@ -144,13 +146,13 @@ class _LoginPageState extends State<LoginPage>
     }
   }
 
-  // ======================================================
-  // BUILD
-  // ======================================================
+  // =====================================
+  // UI
+  // =====================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFf0f4f8),
+      backgroundColor: const Color(0xFFF0F4F8),
       body: Stack(
         children: [
           Positioned(
@@ -170,26 +172,11 @@ class _LoginPageState extends State<LoginPage>
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -50,
-                    right: -50,
-                    child: _bgCircle(180, 0.07),
-                  ),
-                  Positioned(
-                    top: 80,
-                    left: -30,
-                    child: _bgCircle(100, 0.05),
-                  ),
-                ],
-              ),
             ),
           ),
 
           SafeArea(
             child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
               child: FadeTransition(
                 opacity: _fadeAnim,
                 child: SlideTransition(
@@ -198,7 +185,6 @@ class _LoginPageState extends State<LoginPage>
                     children: [
                       _buildTopSection(),
                       _buildFormCard(),
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -210,27 +196,18 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ======================================================
-  // HEADER
-  // ======================================================
+  // =====================================
   Widget _buildTopSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 82,
+            height: 82,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
@@ -249,36 +226,34 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           const Text(
             'Hutabulu Mejan',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
           Text(
             'Masuk ke akun Anda',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.75),
+              color: Colors.white.withOpacity(0.85),
               fontSize: 13,
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 30),
         ],
       ),
     );
   }
 
-  // ======================================================
-  // FORM CARD
-  // ======================================================
+  // =====================================
   Widget _buildFormCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -288,39 +263,41 @@ class _LoginPageState extends State<LoginPage>
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1e40af).withOpacity(0.12),
-            blurRadius: 30,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Selamat Datang 👋',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Selamat Datang 👋',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
 
-            const Text(
-              'Masukkan NIK dan password Anda',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF94a3b8),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Masukkan NIK dan Password',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 13,
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            _fieldLabel('Nomor Induk Kependudukan (NIK)'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 25),
 
             TextFormField(
               controller: _nikCtrl,
@@ -330,12 +307,12 @@ class _LoginPageState extends State<LoginPage>
                 FilteringTextInputFormatter.digitsOnly,
               ],
               decoration: _inputDecoration(
-                hint: '3212XXXXXXXXXXXX',
-                icon: Icons.badge_rounded,
+                hint: 'Masukkan NIK',
+                icon: Icons.badge,
                 counterText: '',
               ),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) {
+                if (v == null || v.isEmpty) {
                   return 'NIK wajib diisi';
                 }
                 if (v.length != 16) {
@@ -345,21 +322,20 @@ class _LoginPageState extends State<LoginPage>
               },
             ),
 
-            const SizedBox(height: 16),
-
-            _fieldLabel('Password'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 15),
 
             TextFormField(
               controller: _passCtrl,
               obscureText: !_showPass,
               decoration: _inputDecoration(
-                hint: 'Masukkan password',
-                icon: Icons.lock_rounded,
+                hint: 'Masukkan Password',
+                icon: Icons.lock,
               ).copyWith(
                 suffixIcon: IconButton(
                   onPressed: () {
-                    setState(() => _showPass = !_showPass);
+                    setState(() {
+                      _showPass = !_showPass;
+                    });
                   },
                   icon: Icon(
                     _showPass
@@ -372,36 +348,19 @@ class _LoginPageState extends State<LoginPage>
                 if (v == null || v.isEmpty) {
                   return 'Password wajib diisi';
                 }
-                if (v.length < 6) {
-                  return 'Password minimal 6 karakter';
-                }
                 return null;
               },
             ),
 
-            const SizedBox(height: 14),
-
-            Row(
-              children: [
-                Checkbox(
-                  value: _rememberMe,
-                  onChanged: (v) {
-                    setState(() => _rememberMe = v ?? false);
-                  },
-                ),
-                const Text('Ingat saya'),
-              ],
-            ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 25),
 
             GestureDetector(
               onTap: _isLoading ? null : _login,
               child: Container(
-                width: double.infinity,
                 height: 52,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(15),
                   gradient: const LinearGradient(
                     colors: [
                       Color(0xFF1e40af),
@@ -424,45 +383,13 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RegisterPage(),
-                  ),
-                );
-              },
-              child: const Center(
-                child: Text(
-                  'Belum punya akun? Daftar',
-                  style: TextStyle(
-                    color: Color(0xFF2563eb),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  // ======================================================
-  Widget _fieldLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
+  // =====================================
   InputDecoration _inputDecoration({
     required String hint,
     required IconData icon,
@@ -477,16 +404,9 @@ class _LoginPageState extends State<LoginPage>
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
       ),
-    );
-  }
-
-  Widget _bgCircle(double size, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(opacity),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
     );
   }

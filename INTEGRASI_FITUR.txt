@@ -1,0 +1,270 @@
+// INTEGRASI SISTEM NOTIFIKASI & RESPONS ADMIN
+// ============================================================
+
+/*
+✅ FITUR YANG SUDAH DITAMBAHKAN:
+
+1. MODEL (lib/models/)
+   ✓ respons_model.dart
+     - ResponsAdmin: Model untuk respons admin
+     - NotifikasiItem: Model untuk notifikasi
+     - TipeRespons: Enum untuk tipe respons (pengajuan/pengaduan)
+     - TipeNotifikasi: Enum untuk tipe notifikasi
+
+2. SERVICES (lib/services/)
+   ✓ notifikasi_service.dart
+     - NotifikasiService: Singleton untuk manage notifikasi
+     - Fitur: Load, save, tambah, hapus notifikasi dengan SharedPreferences
+   
+   ✓ respons_service.dart
+     - ResponsService: Singleton untuk manage respons admin
+     - Fitur: Load respons dari server, kirim respons, caching
+
+3. PAGES (lib/pages/)
+   ✓ detail_pengajuan_page.dart
+     - Halaman detail pengajuan dengan lihat respons admin
+   
+   ✓ detail_pengaduan_page.dart
+     - Halaman detail pengaduan dengan lihat respons admin
+   
+   ✓ admin_respons_pengajuan_page.dart
+     - Halaman admin untuk menanggapi pengajuan
+   
+   ✓ admin_respons_pengaduan_page.dart
+     - Halaman admin untuk menanggapi pengaduan
+   
+   ✓ notifikasi_page.dart
+     - Halaman notifikasi untuk user
+
+================================================================
+📋 LANGKAH INTEGRASI KE APLIKASI
+================================================================
+
+1. UPDATE pubspec.yaml (TAMBAHKAN):
+   - provider: ^6.0.0 (untuk state management)
+   
+   Dependencies sudah ada:
+   - http: ^1.2.1 ✓
+   - shared_preferences: ^2.2.2 ✓
+
+2. UPDATE main.dart (BUNGKUS DENGAN PROVIDER):
+
+   import 'package:provider/provider.dart';
+   import 'services/notifikasi_service.dart';
+   import 'services/respons_service.dart';
+
+   void main() async {
+     WidgetsFlutterBinding.ensureInitialized();
+     
+     // Load notifikasi saat app start
+     final notifikasiService = NotifikasiService();
+     await notifikasiService.loadNotifikasi();
+     
+     runApp(const MyApp());
+   }
+
+   class MyApp extends StatelessWidget {
+     const MyApp({Key? key}) : super(key: key);
+
+     @override
+     Widget build(BuildContext context) {
+       return MultiProvider(
+         providers: [
+           ChangeNotifierProvider<NotifikasiService>(
+             create: (_) => NotifikasiService(),
+           ),
+           ChangeNotifierProvider<ResponsService>(
+             create: (_) => ResponsService(),
+           ),
+           // provider lainnya...
+         ],
+         child: MaterialApp(
+           // ... konfigurasi app
+         ),
+       );
+     }
+   }
+
+3. UPDATE HALAMAN SURAT (surat_page.dart):
+   - Navigasi ke detail_pengajuan_page saat item diklik
+
+   Contoh di list item:
+   GestureDetector(
+     onTap: () {
+       Navigator.push(
+         context,
+         MaterialPageRoute(
+           builder: (_) => DetailPengajuanPage(
+             pengajuan: pengajuan,
+           ),
+         ),
+       );
+     },
+     child: ListTile(...),
+   )
+
+4. UPDATE HALAMAN PENGADUAN (pengaduan_page.dart):
+   - Navigasi ke detail_pengaduan_page saat item diklik
+
+   Contoh di list item:
+   GestureDetector(
+     onTap: () {
+       Navigator.push(
+         context,
+         MaterialPageRoute(
+           builder: (_) => DetailPengaduanPage(
+             pengaduan: pengaduan,
+           ),
+         ),
+       );
+     },
+     child: ListTile(...),
+   )
+
+5. UPDATE HALAMAN ADMIN PENGAJUAN (admin_pengajuan_page.dart):
+   - Tambahkan button "Balas/Respons" untuk setiap item
+
+   Contoh action button:
+   ElevatedButton(
+     onPressed: () {
+       Navigator.push(
+         context,
+         MaterialPageRoute(
+           builder: (_) => AdminResponsPengajuanPage(
+             pengajuan: pengajuan,
+             onResponsSent: () {
+               // Refresh list
+             },
+           ),
+         ),
+       );
+     },
+     child: const Text('Balas'),
+   )
+
+6. TAMBAH HALAMAN ADMIN PENGADUAN (BARU):
+   - Buat halaman untuk admin manage pengaduan
+   - Tambahkan button "Balas/Respons"
+
+   Contoh struktur:
+   lib/pages/admin_pengaduan_page.dart
+   - List pengaduan dengan status
+   - Filter by status
+   - Action button untuk balas
+
+7. TAMBAH ROUTE NOTIFIKASI DI NAVIGATION:
+   - Tambah icon notifikasi di app bar atau bottom nav
+   - Navigasi ke notifikasi_page
+
+   Contoh di AppBar:
+   AppBar(
+     actions: [
+       Consumer<NotifikasiService>(
+         builder: (context, notifikasiService, _) {
+           return Stack(
+             children: [
+               IconButton(
+                 icon: const Icon(Icons.notifications),
+                 onPressed: () {
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                       builder: (_) => const NotifikasiPage(),
+                     ),
+                   );
+                 },
+               ),
+               if (notifikasiService.jumlahBelumDibaca > 0)
+                 Positioned(
+                   right: 0,
+                   child: Container(
+                     padding: const EdgeInsets.all(4),
+                     decoration: const BoxDecoration(
+                       color: Colors.red,
+                       shape: BoxShape.circle,
+                     ),
+                     child: Text(
+                       notifikasiService.jumlahBelumDibaca.toString(),
+                       style: const TextStyle(
+                         color: Colors.white,
+                         fontSize: 10,
+                       ),
+                     ),
+                   ),
+                 ),
+             ],
+           );
+         },
+       ),
+     ],
+   )
+
+================================================================
+🔌 API ENDPOINTS YANG DIPERLUKAN (Backend)
+================================================================
+
+Pastikan backend sudah provide endpoint ini:
+
+1. GET /api/respons/pengajuan/:id
+   - Response: List<ResponsAdmin> untuk pengajuan tertentu
+
+2. GET /api/respons/pengaduan/:id
+   - Response: List<ResponsAdmin> untuk pengaduan tertentu
+
+3. POST /api/respons/pengajuan
+   - Body: { id_pengajuan, pesan }
+   - Response: { data: ResponsAdmin }
+
+4. POST /api/respons/pengaduan
+   - Body: { id_pengajuan, pesan }
+   - Response: { data: ResponsAdmin }
+
+5. GET /api/pengaduan
+   - (sudah ada, tapi pastikan response include status dan catatan_admin)
+
+================================================================
+📱 FLOW APLIKASI
+================================================================
+
+USER FLOW:
+1. User buat pengajuan/pengaduan
+2. Admin terima notifikasi
+3. Admin bisa lihat detail dan balas
+4. User notifikasi ada respons baru
+5. User bisa lihat respons di halaman detail
+
+ADMIN FLOW:
+1. Admin buka halaman admin_pengajuan_page
+2. Admin pilih pengajuan untuk dibalas
+3. Admin buka admin_respons_pengajuan_page
+4. Admin tulis pesan respons
+5. Admin kirim respons
+6. System notifikasi kirim ke user
+
+================================================================
+🔔 NOTIFIKASI MANUAL (Testing)
+================================================================
+
+Untuk test notifikasi tanpa API, bisa manual trigger:
+
+// Di services atau page
+final notifikasiService = NotifikasiService();
+notifikasiService.tambahNotifikasi(
+  judul: 'Ada Respons Baru! 💬',
+  pesan: 'Admin telah menanggapi pengajuan Anda',
+  tipe: TipeNotifikasi.respons,
+  relatedId: 'PGJ-123456789',
+);
+
+================================================================
+⚡ TIPS IMPLEMENTASI
+================================================================
+
+1. Tambahkan loading state di halaman list pengajuan/pengaduan
+2. Trigger notifikasi saat user membuat pengajuan/pengaduan baru
+3. Tambahkan auto-refresh saat halaman detail dibuka
+4. Pertimbangkan push notification (Firebase Cloud Messaging)
+5. Tambahkan sound/vibration saat notifikasi baru
+6. Implement pagination untuk list notifikasi besar
+
+*/

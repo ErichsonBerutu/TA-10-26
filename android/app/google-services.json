@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "541328348754",
+    "project_id": "notifikasi-real-time-27e28",
+    "storage_bucket": "notifikasi-real-time-27e28.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:541328348754:android:5d3713efe45d1bdca2318b",
+        "android_client_info": {
+          "package_name": "com.notifikasi.ta_10_2026"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqUIH0Bhe2XijEdMuiN-r9zYIYfcmKMrA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,92 +1,15 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/pengumuman_service.dart';
 import '../widgets/app_bottom_nav.dart';
-import 'beranda_page.dart';
+import 'beranda_page.dart' hide PengumumanItem;
 import 'pengaduan_page.dart';
 import 'profile_page.dart';
 import 'surat_page.dart';
 
 // ============================================================
-//  MODEL
-// ============================================================
-
-class PengumumanData {
-  final String id;
-  final String judul;
-  final String isi;
-  final String? gambarUrl;
-  final DateTime uploadedAt;
-  final String uploadedBy;
-
-  const PengumumanData({
-    required this.id,
-    required this.judul,
-    required this.isi,
-    this.gambarUrl,
-    required this.uploadedAt,
-    required this.uploadedBy,
-  });
-}
-
-// ============================================================
-//  DATA DUMMY
-// ============================================================
-
-final List<PengumumanData> _dummyPengumuman = [
-  PengumumanData(
-    id: '1',
-    judul: 'Kegiatan Posyandu Bulan November 2025',
-    isi:
-        'Pelaksanaan posyandu bulanan untuk balita dan ibu hamil akan dilaksanakan di Balai Desa Hutabulu Mejan pada tanggal 25 November 2025 pukul 08.00 – 12.00 WIB. Warga diharapkan membawa buku KIA dan kartu posyandu masing-masing.',
-    gambarUrl: 'assets/images/logo.png',
-    uploadedAt: DateTime(2025, 11, 21, 9, 30),
-    uploadedBy: 'Admin Desa',
-  ),
-  PengumumanData(
-    id: '2',
-    judul: 'Pelaksanaan Senam Pagi Remaja Setiap Minggu',
-    isi:
-        'Karang Taruna Desa Hutabulu Mejan mengadakan kegiatan senam pagi bersama setiap hari Minggu pukul 06.30 WIB di lapangan desa. Terbuka untuk seluruh warga terutama remaja usia 13–25 tahun.',
-    gambarUrl: 'assets/images/example.png',
-    uploadedAt: DateTime(2025, 11, 21, 10, 0),
-    uploadedBy: 'Karang Taruna',
-  ),
-  PengumumanData(
-    id: '3',
-    judul: 'Pemberian Sembako Gratis oleh Kepala Desa',
-    isi:
-        'Kepala Desa Hutabulu Mejan akan membagikan paket sembako gratis kepada warga yang kurang mampu pada tanggal 28 November 2025. Harap melapor ke kantor desa paling lambat 26 November 2025.',
-    uploadedAt: DateTime(2025, 11, 20, 14, 15),
-    uploadedBy: 'Kepala Desa',
-  ),
-  PengumumanData(
-    id: '4',
-    judul: 'Gotong Royong Pembersihan Saluran Air',
-    isi:
-        'Seluruh warga diundang untuk berpartisipasi dalam gotong royong pembersihan saluran air pada hari Sabtu, 30 November 2025 pukul 07.00 WIB. Bawa peralatan kebersihan masing-masing.',
-    uploadedAt: DateTime(2025, 11, 19, 8, 0),
-    uploadedBy: 'Admin Desa',
-  ),
-  PengumumanData(
-    id: '5',
-    judul: 'Musyawarah Desa Penetapan APBDes 2026',
-    isi:
-        'Musyawarah Desa pembahasan APBDes 2026 akan dilaksanakan pada tanggal 5 Desember 2025 pukul 09.00 WIB di Aula Balai Desa. Seluruh perangkat desa dan perwakilan warga diundang hadir.',
-    uploadedAt: DateTime(2025, 11, 18, 11, 30),
-    uploadedBy: 'Sekretaris Desa',
-  ),
-  PengumumanData(
-    id: '6',
-    judul: 'Festival Budaya Lokal Desa Hutabulu Mejan',
-    isi:
-        'Festival Budaya Lokal akan diselenggarakan pada tanggal 10 Desember 2025 menampilkan pertunjukan seni daerah, lomba tradisional, pameran kuliner lokal, dan musik tradisional.',
-    uploadedAt: DateTime(2025, 11, 17, 16, 0),
-    uploadedBy: 'Panitia Festival',
-  ),
-];
-
-// ============================================================
-//  HALAMAN PENGUMUMAN
+//  HALAMAN PENGUMUMAN — Terhubung ke Backend API
 // ============================================================
 
 class PengumumanPage extends StatefulWidget {
@@ -98,29 +21,24 @@ class PengumumanPage extends StatefulWidget {
 
 class _PengumumanPageState extends State<PengumumanPage>
     with SingleTickerProviderStateMixin {
+  final _svc = PengumumanService();
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
 
+  // ── Navigation ────────────────────────────────────────────
+
   void _onBottomNavTap(AppNavItem item) {
-    if (item == AppNavItem.pengumuman) {
-      return;
-    }
+    if (item == AppNavItem.pengumuman) return;
 
     if (item == AppNavItem.beranda) {
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const BerandaPage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const BerandaPage()));
     } else if (item == AppNavItem.surat) {
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const SuratPage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const SuratPage()));
     } else if (item == AppNavItem.pengaduan) {
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const PengaduanPage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const PengaduanPage()));
     } else if (item == AppNavItem.profil) {
       final authService = AuthService();
       if (authService.isLoggedIn && authService.currentUser != null) {
@@ -135,14 +53,13 @@ class _PengumumanPageState extends State<PengumumanPage>
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silakan login terlebih dahulu'),
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('Silakan login terlebih dahulu')),
         );
       }
     }
   }
+
+  // ── Lifecycle ─────────────────────────────────────────────
 
   @override
   void initState() {
@@ -153,35 +70,26 @@ class _PengumumanPageState extends State<PengumumanPage>
     );
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
     _animCtrl.forward();
+
+    // Muat data dari API
+    _svc.addListener(_refresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _svc.muatPengumuman();
+    });
   }
 
   @override
   void dispose() {
+    _svc.removeListener(_refresh);
     _animCtrl.dispose();
     super.dispose();
   }
 
-  String _formatTanggal(DateTime dt) {
-    const bulan = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    final jam = dt.hour.toString().padLeft(2, '0');
-    final menit = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}, $jam.$menit WIB';
-  }
+  void _refresh() => setState(() {});
 
-  void _bukaDetail(PengumumanData data) {
+  // ── Navigasi ke Detail ────────────────────────────────────
+
+  void _bukaDetail(PengumumanItem data) {
     Navigator.push(
       context,
       PageRouteBuilder(
@@ -198,6 +106,20 @@ class _PengumumanPageState extends State<PengumumanPage>
     );
   }
 
+  // ── Helpers ───────────────────────────────────────────────
+
+  String _formatTanggal(DateTime dt) {
+    const bulan = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final jam = dt.hour.toString().padLeft(2, '0');
+    final mnt = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}, $jam.$mnt WIB';
+  }
+
+  // ── BUILD ─────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -207,16 +129,7 @@ class _PengumumanPageState extends State<PengumumanPage>
         child: Column(
           children: [
             _buildHeader(),
-            Expanded(
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                  itemCount: _dummyPengumuman.length,
-                  itemBuilder: (_, i) => _buildCard(_dummyPengumuman[i]),
-                ),
-              ),
-            ),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
@@ -226,6 +139,8 @@ class _PengumumanPageState extends State<PengumumanPage>
       ),
     );
   }
+
+  // ── Header ────────────────────────────────────────────────
 
   Widget _buildHeader() {
     return Container(
@@ -238,10 +153,7 @@ class _PengumumanPageState extends State<PengumumanPage>
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x661e40af),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
+              color: Color(0x661e40af), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -252,15 +164,13 @@ class _PengumumanPageState extends State<PengumumanPage>
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.2)),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white, size: 18),
             ),
           ),
           const SizedBox(width: 12),
@@ -271,32 +181,30 @@ class _PengumumanPageState extends State<PengumumanPage>
                 Text(
                   'Pengumuman',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18),
                 ),
-                Text(
-                  'Informasi terkini dari desa',
-                  style: TextStyle(color: Color(0x99ffffff), fontSize: 11),
-                ),
+                Text('Informasi terkini dari desa',
+                    style: TextStyle(color: Color(0x99ffffff), fontSize: 11)),
               ],
             ),
           ),
+          // Badge jumlah
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
             ),
             child: Text(
-              '${_dummyPengumuman.length} info',
+              _svc.isLoading ? '...' : '${_svc.total} info',
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -304,9 +212,47 @@ class _PengumumanPageState extends State<PengumumanPage>
     );
   }
 
-  // ── Card: judul bold + datetime + tombol ───────────────────
+  // ── Body ─────────────────────────────────────────────────
 
-  Widget _buildCard(PengumumanData data) {
+  Widget _buildBody() {
+    if (_svc.isLoading) {
+      return _buildLoading();
+    }
+
+    if (_svc.hasError) {
+      return _buildError();
+    }
+
+    if (_svc.daftar.isEmpty) {
+      return _buildEmpty();
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: RefreshIndicator(
+        onRefresh: () => _svc.muatPengumuman(forceRefresh: true),
+        color: const Color(0xFF2563eb),
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          itemCount: _svc.daftar.length,
+          itemBuilder: (_, i) => _buildCard(_svc.daftar[i]),
+        ),
+      ),
+    );
+  }
+
+  // ── Loading State ─────────────────────────────────────────
+
+  Widget _buildLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      itemCount: 4,
+      itemBuilder: (_, __) => _buildSkeletonCard(),
+    );
+  }
+
+  Widget _buildSkeletonCard() {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -315,236 +261,352 @@ class _PengumumanPageState extends State<PengumumanPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _shimmer(height: 16, width: double.infinity),
+          const SizedBox(height: 8),
+          _shimmer(height: 12, width: 160),
+          const SizedBox(height: 10),
+          _shimmer(height: 12, width: double.infinity),
+          const SizedBox(height: 4),
+          _shimmer(height: 12, width: 220),
+        ],
+      ),
+    );
+  }
+
+  Widget _shimmer({required double height, required double width}) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: const Color(0xFFe2e8f0),
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+
+  // ── Error State ───────────────────────────────────────────
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFfee2e2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Center(
+                child: Text('📡', style: TextStyle(fontSize: 36)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Gagal Memuat Pengumuman',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1e293b)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _svc.errorMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748b)),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _svc.muatPengumuman(forceRefresh: true),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Coba Lagi'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563eb),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Empty State ───────────────────────────────────────────
+
+  Widget _buildEmpty() {
+    return RefreshIndicator(
+      onRefresh: () => _svc.muatPengumuman(forceRefresh: true),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFe2e8f0),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Center(
+                    child: Text('📭', style: TextStyle(fontSize: 38)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Belum ada pengumuman',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748b)),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Tarik ke bawah untuk memuat ulang',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF94a3b8)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Card ──────────────────────────────────────────────────
+
+  // Warna badge acak berdasarkan id pengumuman
+  static const _badgeColors = [
+    Color(0xFF2563eb),
+    Color(0xFF16a34a),
+    Color(0xFFd97706),
+    Color(0xFF9333ea),
+    Color(0xFFdc2626),
+  ];
+
+  Color _badgeColor(String id) {
+    final idx = id.hashCode.abs() % _badgeColors.length;
+    return _badgeColors[idx];
+  }
+
+  Widget _buildCard(PengumumanItem data) {
+    final badge = _badgeColor(data.id);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
         border: Border.all(color: const Color(0xFFe2e8f0)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Judul bold
-          Text(
-            data.judul,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0f172a),
-              height: 1.4,
-              letterSpacing: -0.1,
-            ),
-          ),
-          const SizedBox(height: 8),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _bukaDetail(data),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thumbnail gambar (jika ada)
+                if (data.gambarUrl != null && data.gambarUrl!.isNotEmpty)
+                  _buildThumbnail(data.gambarUrl!),
 
-          // Datetime
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_rounded,
-                size: 12,
-                color: Color(0xFF94a3b8),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                _formatTanggal(data.uploadedAt),
-                style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Pratinjau isi (2 baris)
-          Text(
-            data.isi,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748b),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Tombol lihat selengkapnya
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: () => _bukaDetail(data),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2563eb).withOpacity(0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                // Badge + judul
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Selengkapnya',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: badge.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '📣',
+                        style: TextStyle(fontSize: 13, color: badge),
                       ),
                     ),
-                    SizedBox(width: 5),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white,
-                      size: 15,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        data.judul,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0f172a),
+                          height: 1.35,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 8),
+
+                // Meta: tanggal + pembuat
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 11, color: Color(0xFF94a3b8)),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatTanggal(data.createdAt),
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF94a3b8)),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.person_outline_rounded,
+                        size: 11, color: Color(0xFF94a3b8)),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        data.namaPembuat,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF94a3b8)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Pratinjau isi (2 baris)
+                Text(
+                  _stripHtml(data.isi),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748b),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Tombol selengkapnya
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 9),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2563eb).withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Selengkapnya',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(width: 5),
+                        Icon(Icons.arrow_forward_rounded,
+                            color: Colors.white, size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(String url) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      height: 150,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFe2e8f0),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(Icons.broken_image_rounded,
+              color: Color(0xFF94a3b8), size: 32),
+        ),
+        loadingBuilder: (_, child, progress) => progress == null
+            ? child
+            : const Center(
+                child: CircularProgressIndicator(
+                    color: Color(0xFF2563eb), strokeWidth: 2),
+              ),
       ),
     );
   }
 }
 
 // ============================================================
-//  HALAMAN DETAIL
+//  HALAMAN DETAIL PENGUMUMAN
 // ============================================================
 
 class _DetailPengumumanPage extends StatelessWidget {
-  final PengumumanData data;
+  final PengumumanItem data;
   const _DetailPengumumanPage({required this.data});
 
-  void _bukaGambarFull(BuildContext context, String source) {
+  void _bukaGambarFull(BuildContext context, String url) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => _FullScreenImagePage(source: source)),
-    );
-  }
-
-  Widget _buildGambarPengumuman(BuildContext context) {
-    final source = data.gambarUrl;
-    if (source == null || source.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final isNetwork =
-        source.startsWith('http://') || source.startsWith('https://');
-
-    return GestureDetector(
-      onTap: () => _bukaGambarFull(context, source),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              isNetwork
-                  ? Image.network(
-                      source,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _gambarFallback(),
-                    )
-                  : Image.asset(
-                      source,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _gambarFallback(),
-                    ),
-              Positioned(
-                right: 10,
-                bottom: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.zoom_in_rounded,
-                        color: Colors.white,
-                        size: 13,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Tap untuk zoom',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _gambarFallback() {
-    return Container(
-      color: const Color(0xFFe2e8f0),
-      child: const Center(
-        child: Icon(
-          Icons.broken_image_rounded,
-          color: Color(0xFF94a3b8),
-          size: 34,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => _FullScreenImagePage(url: url)),
     );
   }
 
   String _formatTanggalLengkap(DateTime dt) {
     const hari = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu',
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
     ];
     const bulan = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
     ];
     final jam = dt.hour.toString().padLeft(2, '0');
-    final menit = dt.minute.toString().padLeft(2, '0');
-    return '${hari[dt.weekday - 1]}, ${dt.day} ${bulan[dt.month - 1]} ${dt.year}  •  $jam.$menit WIB';
+    final mnt = dt.minute.toString().padLeft(2, '0');
+    return '${hari[dt.weekday - 1]}, ${dt.day} ${bulan[dt.month - 1]} ${dt.year}  •  $jam.$mnt WIB';
   }
 
   @override
@@ -555,25 +617,25 @@ class _DetailPengumumanPage extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            // Header
+            // ── Header ────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
                     Color(0xFF1e3a8a),
                     Color(0xFF1e40af),
-                    Color(0xFF2563eb),
+                    Color(0xFF2563eb)
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x661e40af),
-                    blurRadius: 16,
-                    offset: Offset(0, 4),
-                  ),
+                      color: Color(0x661e40af),
+                      blurRadius: 16,
+                      offset: Offset(0, 4)),
                 ],
               ),
               child: Row(
@@ -584,17 +646,13 @@ class _DetailPengumumanPage extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                        ),
+                            color: Colors.white.withValues(alpha: 0.2)),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 18),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -605,18 +663,13 @@ class _DetailPengumumanPage extends StatelessWidget {
                         Text(
                           'Detail Pengumuman',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                          ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18),
                         ),
-                        Text(
-                          'Informasi lengkap',
-                          style: TextStyle(
-                            color: Color(0x99ffffff),
-                            fontSize: 11,
-                          ),
-                        ),
+                        Text('Informasi lengkap',
+                            style: TextStyle(
+                                color: Color(0x99ffffff), fontSize: 11)),
                       ],
                     ),
                   ),
@@ -624,7 +677,7 @@ class _DetailPengumumanPage extends StatelessWidget {
               ),
             ),
 
-            // Konten
+            // ── Konten ────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
@@ -635,7 +688,7 @@ class _DetailPengumumanPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -645,7 +698,7 @@ class _DetailPengumumanPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Judul bold besar
+                      // Judul
                       Text(
                         data.judul,
                         style: const TextStyle(
@@ -658,20 +711,17 @@ class _DetailPengumumanPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
 
-                      // Datetime + oleh
+                      // Meta
                       Row(
                         children: [
-                          const Icon(
-                            Icons.calendar_today_rounded,
-                            size: 13,
-                            color: Color(0xFF94a3b8),
-                          ),
+                          const Icon(Icons.calendar_today_rounded,
+                              size: 13, color: Color(0xFF94a3b8)),
                           const SizedBox(width: 5),
-                          Text(
-                            _formatTanggalLengkap(data.uploadedAt),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF94a3b8),
+                          Expanded(
+                            child: Text(
+                              _formatTanggalLengkap(data.createdAt),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF94a3b8)),
                             ),
                           ),
                         ],
@@ -679,34 +729,85 @@ class _DetailPengumumanPage extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.person_outline_rounded,
-                            size: 13,
-                            color: Color(0xFF94a3b8),
-                          ),
+                          const Icon(Icons.person_outline_rounded,
+                              size: 13, color: Color(0xFF94a3b8)),
                           const SizedBox(width: 5),
                           Text(
-                            data.uploadedBy,
+                            data.namaPembuat,
                             style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF94a3b8),
-                            ),
+                                fontSize: 11, color: Color(0xFF94a3b8)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 18),
-
                       const Divider(height: 1, color: Color(0xFFe2e8f0)),
                       const SizedBox(height: 18),
 
-                      // Gambar pengumuman (jika tersedia)
-                      _buildGambarPengumuman(context),
-                      if (data.gambarUrl != null && data.gambarUrl!.isNotEmpty)
+                      // Gambar (jika ada)
+                      if (data.gambarUrl != null &&
+                          data.gambarUrl!.isNotEmpty) ...[
+                        GestureDetector(
+                          onTap: () =>
+                              _bukaGambarFull(context, data.gambarUrl!),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    data.gambarUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: const Color(0xFFe2e8f0),
+                                      child: const Center(
+                                        child: Icon(
+                                            Icons.broken_image_rounded,
+                                            color: Color(0xFF94a3b8),
+                                            size: 34),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 10,
+                                    bottom: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.45),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.zoom_in_rounded,
+                                              color: Colors.white, size: 13),
+                                          SizedBox(width: 4),
+                                          Text('Tap untuk zoom',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight:
+                                                      FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 18),
+                      ],
 
-                      // Isi lengkap
+                      // Isi pengumuman
                       Text(
-                        data.isi,
+                        _stripHtml(data.isi),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF334155),
@@ -725,15 +826,12 @@ class _DetailPengumumanPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(
-                                  0xFF2563eb,
-                                ).withOpacity(0.25),
+                                color: const Color(0xFF2563eb)
+                                    .withValues(alpha: 0.25),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -743,19 +841,15 @@ class _DetailPengumumanPage extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.arrow_back_rounded,
-                                  color: Colors.white,
-                                  size: 17,
-                                ),
+                                Icon(Icons.arrow_back_rounded,
+                                    color: Colors.white, size: 17),
                                 SizedBox(width: 7),
                                 Text(
                                   'Kembali',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
-                                  ),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14),
                                 ),
                               ],
                             ),
@@ -774,52 +868,54 @@ class _DetailPengumumanPage extends StatelessWidget {
   }
 }
 
-class _FullScreenImagePage extends StatelessWidget {
-  final String source;
+// ============================================================
+//  FULLSCREEN IMAGE VIEWER
+// ============================================================
 
-  const _FullScreenImagePage({required this.source});
+class _FullScreenImagePage extends StatelessWidget {
+  final String url;
+  const _FullScreenImagePage({required this.url});
 
   @override
   Widget build(BuildContext context) {
-    final isNetwork =
-        source.startsWith('http://') || source.startsWith('https://');
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Pratinjau Gambar',
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
+        title: const Text('Pratinjau Gambar',
+            style: TextStyle(color: Colors.white, fontSize: 16)),
       ),
       body: Center(
         child: InteractiveViewer(
           minScale: 0.8,
           maxScale: 4.0,
-          child: isNetwork
-              ? Image.network(
-                  source,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.broken_image_rounded,
-                    color: Colors.white70,
-                    size: 52,
-                  ),
-                )
-              : Image.asset(
-                  source,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.broken_image_rounded,
-                    color: Colors.white70,
-                    size: 52,
-                  ),
-                ),
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Center(
+              child: Icon(Icons.broken_image_rounded,
+                  color: Colors.white54, size: 60),
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+String _stripHtml(String htmlString) {
+  String parsed = htmlString.replaceAll(RegExp(r'<br\s*/?>'), '\n');
+  parsed = parsed.replaceAll(RegExp(r'</p>'), '\n\n');
+  parsed = parsed.replaceAll(RegExp(r'</div>|</li>|</h1>|</h2>|</h3>|</h4>|</h5>|</h5>'), '\n');
+  parsed = parsed.replaceAll(RegExp(r'<[^>]*>'), '');
+  parsed = parsed.replaceAll('&nbsp;', ' ');
+  parsed = parsed.replaceAll('&amp;', '&');
+  parsed = parsed.replaceAll('&lt;', '<');
+  parsed = parsed.replaceAll('&gt;', '>');
+  parsed = parsed.replaceAll('&quot;', '"');
+  parsed = parsed.replaceAll('&#39;', "'");
+  parsed = parsed.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  return parsed.trim();
 }
