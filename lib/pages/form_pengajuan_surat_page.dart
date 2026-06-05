@@ -223,6 +223,13 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       return;
     }
 
+    // Fetch data profil terbaru dari server secara sinkron untuk memastikan data auto-fill terupdate
+    try {
+      await AuthService().fetchLatestProfile();
+    } catch (e) {
+      debugPrint('Silent profile sync error in form: $e');
+    }
+
     // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
     final localData = await OfflineDatabaseService().ambilPersyaratan(widget.jenisSuratId);
     if (localData.isNotEmpty) {
@@ -945,6 +952,122 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           ],
         ],
       ),
+    );
+  }
+
+  // ── GENDER SELECTOR CHIP WIDGET ───────────────────────────────
+  Widget _buildGenderSelector(String keyStr, bool isRequired) {
+    final selected = _answers[keyStr]?.toString();
+    final isError = isRequired && selected == null;
+
+    const lakilaki = 'Laki-laki';
+    const perempuan = 'Perempuan';
+
+    Widget buildChip(String label, IconData icon, Color activeColor) {
+      final isActive = selected == label;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _answers[keyStr] = label;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: isActive ? activeColor : const Color(0xFFf8fafc),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isActive ? activeColor : (isError ? Colors.red.shade300 : Colors.grey.shade200),
+                width: isActive ? 2.0 : 1.2,
+              ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: activeColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      )
+                    ]
+                  : [],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 28,
+                  color: isActive ? Colors.white : activeColor,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isActive ? Colors.white : const Color(0xFF374151),
+                  ),
+                ),
+                if (isActive) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      '✓ Dipilih',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            buildChip(lakilaki, Icons.male_rounded, const Color(0xFF2563eb)),
+            const SizedBox(width: 12),
+            buildChip(perempuan, Icons.female_rounded, const Color(0xFFdb2777)),
+          ],
+        ),
+        if (isError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Jenis kelamin wajib dipilih.',
+              style: TextStyle(color: Colors.red.shade600, fontSize: 12),
+            ),
+          ),
+        if (selected != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 2),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF64748b)),
+                const SizedBox(width: 4),
+                Text(
+                  'Diisi otomatis dari data profil Anda. Ketuk untuk mengubah.',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8), height: 1.4),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

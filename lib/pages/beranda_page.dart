@@ -12,7 +12,7 @@ import 'pengumuman_page.dart';
 import 'surat_page.dart';
 import 'pengaduan_page.dart';
 import 'profile_page.dart';
-import 'arsip_page.dart';
+import 'riwayat_layanan_page.dart';
 
 // ============================================================
 //  MODEL DATA
@@ -238,7 +238,7 @@ const List<SlideItem> slides = [
 const List<LayananItem> layananList = [
   LayananItem(label: 'Pengajuan Surat', emoji: '📋', color: Color(0xFF2563eb)),
   LayananItem(label: 'Pengaduan', emoji: '💬', color: Color(0xFFef4444)),
-  LayananItem(label: 'Riwayat & Arsip', emoji: '📂', color: Color(0xFF7c3aed)),
+  LayananItem(label: 'Riwayat Layanan', emoji: '📂', color: Color(0xFF7c3aed)),
   LayananItem(label: 'Pengumuman', emoji: '📣', color: Color(0xFF16a34a)),
 ];
 
@@ -538,10 +538,10 @@ class _BerandaPageState extends State<BerandaPage>
         context,
         MaterialPageRoute(builder: (_) => const PengaduanPage()),
       );
-    } else if (item.label == 'Riwayat & Arsip' || item.label == 'Data') {
+    } else if (item.label.trim() == 'Riwayat Layanan' || item.label.trim() == 'Arsip' || item.label == 'Data') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ArsipPage()),
+        MaterialPageRoute(builder: (_) => const RiwayatLayananPage()),
       );
     } else if (item.label == 'Pengumuman') {
       Navigator.push(

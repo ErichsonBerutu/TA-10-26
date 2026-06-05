@@ -342,7 +342,9 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
   }
 
   String _formatTanggal(DateTime tanggal) {
-    return '${tanggal.day}/${tanggal.month}/${tanggal.year} ${tanggal.hour}:${tanggal.minute.toString().padLeft(2, '0')}';
+    final hourStr = tanggal.hour.toString().padLeft(2, '0');
+    final minuteStr = tanggal.minute.toString().padLeft(2, '0');
+    return '${tanggal.day}/${tanggal.month}/${tanggal.year} $hourStr:$minuteStr';
   }
 
   Widget _buildImageWidget(String path) {

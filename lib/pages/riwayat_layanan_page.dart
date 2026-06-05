@@ -1,6 +1,6 @@
-// lib/pages/arsip_page.dart
+// lib/pages/riwayat_layanan_page.dart
 //
-// Halaman Arsip Terpadu ("Pertinggal") untuk warga mengakses semua berkas pelayanan:
+// Halaman Riwayat Layanan Terpadu untuk warga mengakses semua berkas pelayanan:
 // 1. Surat Kependudukan (📋) - List surat resmi desa yang pernah diajukan
 // 2. Pengaduan Warga (💬) - List laporan pengaduan beserta tanggapan admin & resi PDF
 //
@@ -19,14 +19,14 @@ import '../api_config/api_config.dart';
 import 'pdf_preview_page.dart';
 import 'pengaduan_detail_page.dart';
 
-class ArsipPage extends StatefulWidget {
-  const ArsipPage({super.key});
+class RiwayatLayananPage extends StatefulWidget {
+  const RiwayatLayananPage({super.key});
 
   @override
-  State<ArsipPage> createState() => _ArsipPageState();
+  State<RiwayatLayananPage> createState() => _RiwayatLayananPageState();
 }
 
-class _ArsipPageState extends State<ArsipPage>
+class _RiwayatLayananPageState extends State<RiwayatLayananPage>
     with SingleTickerProviderStateMixin {
   final _pengajuanSvc = PengajuanService();
   final _pengaduanSvc = PengaduanService();
@@ -149,14 +149,14 @@ class _ArsipPageState extends State<ArsipPage>
             ),
           ),
           const SizedBox(width: 14),
-          const Icon(Icons.folder_copy_rounded, color: Colors.white, size: 22),
+          const Icon(Icons.history_rounded, color: Colors.white, size: 22),
           const SizedBox(width: 8),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Arsip Berkas Digital',
+                  'Riwayat Layanan',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -166,7 +166,7 @@ class _ArsipPageState extends State<ArsipPage>
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Pertinggal data surat & pengaduan Anda',
+                  'Daftar riwayat pengajuan surat & pengaduan Anda',
                   style: TextStyle(
                     color: Color(0xFFbfdbfe),
                     fontSize: 11,
@@ -235,8 +235,8 @@ class _ArsipPageState extends State<ArsipPage>
 
     if (list.isEmpty) {
       return _buildEmptyState(
-        'Belum Ada Pengajuan Surat',
-        'Semua berkas pengajuan surat Anda akan diarsipkan di sini setelah Anda mengajukannya.',
+        'Belum Ada Riwayat Surat',
+        'Semua riwayat pengajuan surat Anda akan muncul di sini setelah Anda mengajukannya.',
         '📋',
       );
     }
@@ -385,7 +385,6 @@ class _ArsipPageState extends State<ArsipPage>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          // Show applicant name / NIK if present (mirip layout admin web)
                           if (p.data.containsKey('nama') || p.data.containsKey('nik')) ...[
                             Text(
                               '${p.data['nama'] ?? '-'}',
@@ -493,8 +492,8 @@ class _ArsipPageState extends State<ArsipPage>
 
     if (list.isEmpty) {
       return _buildEmptyState(
-        'Belum Ada Pengaduan',
-        'Semua berkas pelaporan pengaduan warga yang Anda kirim akan diarsipkan di sini.',
+        'Belum Ada Riwayat Pengaduan',
+        'Semua riwayat pelaporan pengaduan warga yang Anda kirim akan muncul di sini.',
         '💬',
       );
     }
@@ -549,101 +548,167 @@ class _ArsipPageState extends State<ArsipPage>
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFe2e8f0), width: 0.8),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Banner Status
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFe2e8f0), width: 0.8),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x05000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner Status
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Status: $statusText',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Status: $statusText',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatTgl(p.tanggalAjuan),
-                  style: const TextStyle(
-                    color: Color(0xFF64748b),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
+                  const Spacer(),
+                  Text(
+                    _formatTgl(p.tanggalAjuan),
+                    style: const TextStyle(
+                      color: Color(0xFF64748b),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFfef2f2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          p.jenisEmoji,
-                          style: const TextStyle(fontSize: 24),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFfef2f2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            p.jenisEmoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.judul,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: Color(0xFF0f172a),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Kategori: ${p.jenisLabel}',
+                              style: const TextStyle(
+                                color: Color(0xFF64748b),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    p.deskripsi,
+                    style: const TextStyle(
+                      color: Color(0xFF334155),
+                      fontSize: 12,
+                      height: 1.5,
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                  ),
+
+                  // Complaint Attachment Image Parser
+                  _buildComplaintImage(p.fotoPath),
+
+                  // Admin Responses/Notes
+                  if (p.catatanAdmin != null && p.catatanAdmin!.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFf8fafc),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFe2e8f0)),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            p.judul,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                              color: Color(0xFF0f172a),
-                              letterSpacing: -0.2,
-                            ),
+                          Row(
+                            children: [
+                              const Icon(Icons.admin_panel_settings_rounded,
+                                  color: Color(0xFF475569), size: 15),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Tanggapan Perangkat Desa:',
+                                style: TextStyle(
+                                  color: Color(0xFF334155),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (p.tanggalRespons != null)
+                                Text(
+                                  _formatTgl(p.tanggalRespons!),
+                                  style: const TextStyle(
+                                    color: Color(0xFF94a3b8),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 8),
                           Text(
-                            'Kategori: ${p.jenisLabel}',
+                            p.catatanAdmin!,
                             style: const TextStyle(
-                              color: Color(0xFF64748b),
-                              fontSize: 11,
+                              color: Color(0xFF475569),
+                              fontSize: 11.5,
+                              height: 1.45,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -651,80 +716,14 @@ class _ArsipPageState extends State<ArsipPage>
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  p.deskripsi,
-                  style: const TextStyle(
-                    color: Color(0xFF334155),
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
-
-                // Complaint Attachment Image Parser
-                _buildComplaintImage(p.fotoPath),
-
-                // Admin Responses/Notes
-                if (p.catatanAdmin != null && p.catatanAdmin!.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFf8fafc),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFe2e8f0)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.admin_panel_settings_rounded,
-                                color: Color(0xFF475569), size: 15),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Tanggapan Perangkat Desa:',
-                              style: TextStyle(
-                                color: Color(0xFF334155),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (p.tanggalRespons != null)
-                              Text(
-                                _formatTgl(p.tanggalRespons!),
-                                style: const TextStyle(
-                                  color: Color(0xFF94a3b8),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          p.catatanAdmin!,
-                          style: const TextStyle(
-                            color: Color(0xFF475569),
-                            fontSize: 11.5,
-                            height: 1.45,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildComplaintImage(String? path) {
     if (path == null || path.isEmpty) {

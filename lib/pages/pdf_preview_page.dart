@@ -11,10 +11,17 @@ import '../api_config/api_config.dart';
 //  Menampilkan preview surat yang sudah disetujui
 // ============================================================
 
-class PdfPreviewPage extends StatelessWidget {
+class PdfPreviewPage extends StatefulWidget {
   final PengajuanSurat pengajuan;
 
   const PdfPreviewPage({super.key, required this.pengajuan});
+
+  @override
+  State<PdfPreviewPage> createState() => _PdfPreviewPageState();
+}
+
+class _PdfPreviewPageState extends State<PdfPreviewPage> {
+  bool _isDownloading = false;
 
   String _formatTanggal(DateTime dt) {
     const bulan = [
@@ -157,12 +164,12 @@ class PdfPreviewPage extends StatelessWidget {
   // ── Preview Surat ────────────────────────────────────────
 
   Widget _buildSuratPreview(BuildContext context) {
-    final tglRespons = pengajuan.tanggalRespons != null
-        ? _formatTanggal(pengajuan.tanggalRespons!)
+    final tglRespons = widget.pengajuan.tanggalRespons != null
+        ? _formatTanggal(widget.pengajuan.tanggalRespons!)
         : '-';
-    final nama = pengajuan.data['nama'] ?? pengajuan.data['nama_anak'] ?? '-';
-    final nik = pengajuan.data['nik'] ?? '-';
-    final alamat = pengajuan.data['alamat'] ?? '-';
+    final nama = widget.pengajuan.data['nama'] ?? widget.pengajuan.data['nama_anak'] ?? '-';
+    final nik = widget.pengajuan.data['nik'] ?? '-';
+    final alamat = widget.pengajuan.data['alamat'] ?? '-';
 
     return Container(
       decoration: BoxDecoration(
@@ -213,7 +220,7 @@ class PdfPreviewPage extends StatelessWidget {
                 Container(height: 1, color: Colors.white.withOpacity(0.3)),
                 const SizedBox(height: 12),
                 Text(
-                  pengajuan.jenisSurat.toUpperCase(),
+                  widget.pengajuan.jenisSurat.toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -224,7 +231,9 @@ class PdfPreviewPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'No: ${pengajuan.id} / ${DateTime.now().year}',
+                  widget.pengajuan.nomorSurat != null
+                      ? 'No: ${widget.pengajuan.nomorSurat}'
+                      : 'No: ${widget.pengajuan.id} / ${DateTime.now().year}',
                   style: const TextStyle(
                     color: Color(0xFFbfdbfe),
                     fontSize: 11,
@@ -254,7 +263,7 @@ class PdfPreviewPage extends StatelessWidget {
                 _dataRow('Nama', nama),
                 _dataRow('NIK', nik),
                 _dataRow('Alamat', alamat),
-                ...pengajuan.data.entries
+                ...widget.pengajuan.data.entries
                     .where((e) =>
                         e.key != 'nama' &&
                         e.key != 'nik' &&
@@ -433,10 +442,10 @@ class PdfPreviewPage extends StatelessWidget {
                   );
                   return;
                 }
-                
-                final rawUrl = "${ApiConfig.baseUrl}/surat/${pengajuan.id}/view?token=$token";
+
+                final rawUrl = "${ApiConfig.baseUrl}/surat/${widget.pengajuan.id}/view?token=$token";
                 final uri = Uri.parse(rawUrl);
-                
+
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 } else {
@@ -468,34 +477,64 @@ class PdfPreviewPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        // Tombol Print/Simpan PDF
+
+        // Tombol Simpan / Cetak PDF — Mengunduh PDF RESMI dari server
+        // PDF yang dihasilkan IDENTIK dengan PDF di web/admin
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () async {
-              try {
-                if (pengajuan.status == StatusPengajuan.disetujui) {
-                  await PdfService().downloadSurat(context, pengajuan);
-                } else {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Surat belum disetujui untuk dicetak')),
-                  );
-                }
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Gagal mencetak: $e')),
-                );
-              }
-            },
-            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-            label: const Text(
-              'Simpan / Cetak PDF',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            onPressed: _isDownloading
+                ? null
+                : () async {
+                    if (widget.pengajuan.status != StatusPengajuan.disetujui) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Surat belum disetujui untuk dicetak')),
+                      );
+                      return;
+                    }
+
+                    setState(() => _isDownloading = true);
+
+                    try {
+                      // Unduh PDF dari server — menggunakan template yang sama dengan web/admin
+                      final nomorSurat = widget.pengajuan.nomorSurat ?? widget.pengajuan.id;
+                      final filename = '${DateTime.now().year.toString()}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}_${nomorSurat.replaceAll('/', '-')}.pdf';
+
+                      await PdfService().downloadOfficialPdfFromServer(
+                        context,
+                        widget.pengajuan.id,
+                        filename,
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Gagal mengunduh PDF: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    } finally {
+                      if (mounted) setState(() => _isDownloading = false);
+                    }
+                  },
+            icon: _isDownloading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.picture_as_pdf_rounded, size: 18),
+            label: Text(
+              _isDownloading ? 'Mengunduh PDF...' : 'Simpan / Cetak PDF',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16a34a),
+              backgroundColor: _isDownloading
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF16a34a),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -505,6 +544,7 @@ class PdfPreviewPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
+
         // Tombol Kembali
         SizedBox(
           width: double.infinity,
