@@ -43,6 +43,9 @@ class AuthService extends ChangeNotifier {
       _currentUser = User.fromJson(jsonDecode(userJson));
       _isLoggedIn = true;
       notifyListeners();
+
+      // Sinkronisasi data profil terbaru dari server secara asinkron
+      fetchLatestProfile();
     }
   }
 
@@ -208,6 +211,58 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       debugPrint("UPDATE ERROR : $e");
       return false;
+    }
+  }
+
+  // ==================================================
+  // FETCH LATEST PROFILE (SYNC FROM SERVER)
+  // ==================================================
+
+  Future<void> fetchLatestProfile() async {
+    if (_token == null) return;
+    try {
+      final url = Uri.parse("$baseUrl/me");
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $_token",
+          "Accept": "application/json",
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['status'] == 'success' && responseData['data'] != null) {
+          final userMap = responseData["data"]["user"];
+          if (userMap != null) {
+            _currentUser = User(
+              id: userMap["id"],
+              nik: userMap["nik"] ?? "",
+              noKk: userMap["no_kk"] ?? userMap["kk"] ?? userMap["no_kartu_keluarga"] ?? "",
+              nama: userMap["name"] ?? userMap["nama"] ?? "",
+              email: userMap["email"] ?? "",
+              role: userMap["role"] ?? "masyarakat",
+              alamat: userMap["alamat"] ?? "",
+              tempatLahir: userMap["tempat_lahir"] ?? "",
+              tanggalLahir: DateTime.tryParse(userMap["tanggal_lahir"] ?? "") ?? DateTime.now(),
+              agama: userMap["agama"] ?? "",
+              jenisKelamin: userMap["jenis_kelamin"] ?? userMap["kelamin"] ?? userMap["gender"] ?? "",
+              noKtp: userMap["no_ktp"] ?? userMap["nomor_ktp"] ?? userMap["ktp"] ?? userMap["nik"] ?? "",
+              suku: userMap["suku"] ?? userMap["etnis"] ?? "",
+              namaAyah: userMap["nama_ayah"] ?? userMap["ayah"] ?? "",
+              namaIbu: userMap["nama_ibu"] ?? userMap["ibu"] ?? "",
+            );
+
+            // Simpan ke SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
+            notifyListeners();
+            debugPrint("PROFILE SYNCED SUCCESSFULLY: jenisKelamin = ${_currentUser!.jenisKelamin}");
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("FETCH PROFILE ERROR : $e");
     }
   }
 
