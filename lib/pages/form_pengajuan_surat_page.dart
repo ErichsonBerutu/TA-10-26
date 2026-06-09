@@ -58,152 +58,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
   // ── AUTOFILL UTILITIES ──────────────────────────────────────────
   String _getAutoFillValue(String label) {
-    final user = AuthService().currentUser;
-    if (user == null) return '';
-
-    final lower = label.toLowerCase().trim();
-
-    // 0. Tempat & Tanggal Lahir combined (TTL / Tempat, Tanggal Lahir)
-    if (lower == 'ttl' ||
-        (lower.contains('tempat') && (lower.contains('tanggal') || lower.contains('tgl'))) ||
-        lower.contains('tempat, tgl') ||
-        lower.contains('tmpttl')) {
-      if (user.tanggalLahir != null) {
-        final tgl = user.tanggalLahir!;
-        const bln = [
-          '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-        ];
-        final blnStr = tgl.month >= 1 && tgl.month <= 12 ? bln[tgl.month] : '';
-        return "${user.tempatLahir}, ${tgl.day} $blnStr ${tgl.year}";
-      }
-      return user.tempatLahir;
-    }
-
-    // 1. NIK
-    if (lower == 'nik' ||
-        lower.contains('no. nik') ||
-        lower.contains('no.nik') ||
-        lower.contains('nomor nik') ||
-        lower.contains('nomor induk kependudukan') ||
-        lower == 'n i k') {
-      return user.nik;
-    }
-
-    // 2. Nomor KTP (bisa sama dengan NIK, tapi field terpisah di backend)
-    if (lower == 'no ktp' ||
-        lower == 'no. ktp' ||
-        lower == 'nomor ktp' ||
-        lower == 'ktp' ||
-        lower.contains('no. ktp') ||
-        lower.contains('nomor ktp') ||
-        lower.contains('no ktp')) {
-      // Gunakan noKtp jika ada, fallback ke NIK
-      return user.noKtp.isNotEmpty ? user.noKtp : user.nik;
-    }
-
-    // 3. KK / No. KK
-    if (lower == 'kk' ||
-        lower == 'no. kk' ||
-        lower == 'no.kk' ||
-        lower == 'no kk' ||
-        lower.contains('nomor kk') ||
-        lower.contains('no kartu keluarga') ||
-        lower.contains('nomor kartu keluarga') ||
-        lower.contains('no. kartu keluarga')) {
-      return user.noKk;
-    }
-
-    // 4. Nama / Nama Lengkap
-    if (lower == 'nama' ||
-        lower == 'nama lengkap' ||
-        lower.contains('nama pemohon') ||
-        lower.contains('nama lengkap pemohon')) {
-      return user.nama;
-    }
-
-    // 5. Tempat Lahir (tanpa tanggal)
-    if (lower == 'tempat lahir' ||
-        (lower.contains('tempat lahir') && !lower.contains('tanggal') && !lower.contains('tgl')) ||
-        lower.contains('tmp lahir') ||
-        lower.contains('tmp. lahir') ||
-        lower == 'tempat_lahir') {
-      return user.tempatLahir;
-    }
-
-    // 6. Tanggal Lahir (tanpa tempat)
-    if (lower == 'tanggal lahir' ||
-        (lower.contains('tanggal lahir') && !lower.contains('tempat')) ||
-        lower.contains('tgl lahir') ||
-        lower.contains('tgl. lahir') ||
-        lower == 'tanggal_lahir' ||
-        lower == 'tgl_lahir') {
-      if (user.tanggalLahir != null) {
-        final tgl = user.tanggalLahir!;
-        const bln = [
-          '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-        ];
-        final blnStr = tgl.month >= 1 && tgl.month <= 12 ? bln[tgl.month] : '';
-        return "${tgl.day} $blnStr ${tgl.year}";
-      }
-      return '';
-    }
-
-    // 7. Jenis Kelamin
-    if (lower == 'jenis kelamin' ||
-        lower == 'kelamin' ||
-        lower.contains('jenis kelamin') ||
-        lower.contains('j. kelamin') ||
-        lower == 'gender') {
-      final jk = user.jenisKelamin.trim().toUpperCase();
-      if (jk == 'L' || jk == 'LAKI' || jk == 'LAKI-LAKI' || jk == 'PRIA' || jk == 'MALE') {
-        return 'Laki-laki';
-      } else if (jk == 'P' || jk == 'PEREMPUAN' || jk == 'WANITA' || jk == 'FEMALE') {
-        return 'Perempuan';
-      }
-      return user.jenisKelamin;
-    }
-
-    // 8. Suku / Etnis
-    if (lower == 'suku' ||
-        lower.contains('suku bangsa') ||
-        lower.contains('etnis') ||
-        lower.contains('suku/') ||
-        lower == 'suku_bangsa') {
-      return user.suku;
-    }
-
-    // 9. Nama Ayah
-    if (lower == 'nama ayah' ||
-        lower.contains('nama ayah') ||
-        lower.contains('nama_ayah') ||
-        lower == 'ayah') {
-      return user.namaAyah;
-    }
-
-    // 10. Nama Ibu
-    if (lower == 'nama ibu' ||
-        lower.contains('nama ibu') ||
-        lower.contains('nama ibu kandung') ||
-        lower.contains('nama_ibu') ||
-        lower == 'ibu') {
-      return user.namaIbu;
-    }
-
-    // 11. Agama
-    if (lower == 'agama' || lower.contains('agama')) {
-      return user.agama;
-    }
-
-    // 12. Alamat
-    if (lower == 'alamat' ||
-        lower.contains('alamat ktp') ||
-        lower.contains('alamat lengkap') ||
-        lower.contains('alamat domisili')) {
-      return user.alamat;
-    }
-
     return '';
   }
 
@@ -239,24 +93,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         loaded.add(model);
 
         final keyStr = model.id.toString();
-        // Inisialisasi controller jika berupa input teks/angka dengan auto-fill
+        // Inisialisasi controller jika berupa input teks/angka
         if (model.tipeField == 'text' || model.tipeField == 'number') {
-          final autoVal = _getAutoFillValue(model.namaField);
-          _controllers[keyStr] = TextEditingController(text: autoVal);
-        } else if (model.tipeField == 'date') {
-          // Auto-fill date if it's Date of Birth
-          final lower = model.namaField.toLowerCase();
-          if (lower.contains('tanggal lahir') || 
-              lower.contains('tgl lahir') || 
-              lower.contains('tgl. lahir') || 
-              lower.contains('tgl_lahir')) {
-            final user = AuthService().currentUser;
-            if (user != null && user.tanggalLahir != null) {
-              final tgl = user.tanggalLahir!;
-              final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
-              _answers[keyStr] = formatted;
-            }
-          }
+          _controllers[keyStr] = TextEditingController();
         }
       }
 
@@ -288,31 +127,11 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             loaded.add(model);
 
             final keyStr = model.id.toString();
-            // Inisialisasi controller jika berupa input teks/angka dengan auto-fill
+            // Inisialisasi controller jika berupa input teks/angka
             if (model.tipeField == 'text' || model.tipeField == 'number') {
-              final autoVal = _getAutoFillValue(model.namaField);
               // Update atau inisialisasi controller baru
               if (_controllers[keyStr] == null) {
-                _controllers[keyStr] = TextEditingController(text: autoVal);
-              } else {
-                // Jangan override input user yang sedang mengetik
-                if (_controllers[keyStr]!.text.isEmpty && autoVal.isNotEmpty) {
-                  _controllers[keyStr]!.text = autoVal;
-                }
-              }
-            } else if (model.tipeField == 'date') {
-              // Auto-fill date if it's Date of Birth
-              final lower = model.namaField.toLowerCase();
-              if (lower.contains('tanggal lahir') || 
-                  lower.contains('tgl lahir') || 
-                  lower.contains('tgl. lahir') || 
-                  lower.contains('tgl_lahir')) {
-                final user = AuthService().currentUser;
-                if (user != null && user.tanggalLahir != null && _answers[keyStr] == null) {
-                  final tgl = user.tanggalLahir!;
-                  final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
-                  _answers[keyStr] = formatted;
-                }
+                _controllers[keyStr] = TextEditingController();
               }
             }
           }
@@ -704,27 +523,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   Widget _buildField(PersyaratanSuratModel field) {
     final keyStr = field.id.toString();
 
-    // Pilih icon dekoratif berdasarkan tipe field
-    IconData fieldIcon;
-    Color iconColor;
-    switch (field.tipeField) {
-      case 'number':
-        fieldIcon = Icons.pin_rounded;
-        iconColor = const Color(0xFF16a34a);
-        break;
-      case 'date':
-        fieldIcon = Icons.calendar_month_rounded;
-        iconColor = const Color(0xFFea580c);
-        break;
-      case 'file_image':
-        fieldIcon = Icons.image_outlined;
-        iconColor = const Color(0xFFdb2777);
-        break;
-      default:
-        fieldIcon = Icons.edit_note_rounded;
-        iconColor = const Color(0xFF2563eb);
-    }
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -743,30 +541,22 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Baris Label Field
-          Row(
-            children: [
-              Icon(fieldIcon, color: iconColor, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    text: field.namaField,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1e293b),
-                    ),
-                    children: [
-                      if (field.isRequired)
-                        const TextSpan(
-                          text: ' *',
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                        ),
-                    ],
-                  ),
-                ),
+          RichText(
+            text: TextSpan(
+              text: field.namaField,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1e293b),
               ),
-            ],
+              children: [
+                if (field.isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
 

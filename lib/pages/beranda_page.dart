@@ -382,6 +382,16 @@ class _BerandaPageState extends State<BerandaPage>
     return parsed.trim();
   }
 
+  String _formatTanggalPengumuman(DateTime dt) {
+    const bulan = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final jam = dt.hour.toString().padLeft(2, '0');
+    final mnt = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}  •  $jam.$mnt WIB';
+  }
+
   void _toggleNotif() {
     // Navigasi ke halaman notifikasi penuh (server-synced)
     Navigator.push(
@@ -1829,7 +1839,7 @@ class _BerandaPageState extends State<BerandaPage>
   Widget _sectionHeader(String title, String subtitle, {VoidCallback? onTap}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1843,11 +1853,13 @@ class _BerandaPageState extends State<BerandaPage>
                 letterSpacing: -0.2,
               ),
             ),
-            const SizedBox(height: 1),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
-            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
+              ),
+            ],
           ],
         ),
         GestureDetector(
@@ -1857,12 +1869,26 @@ class _BerandaPageState extends State<BerandaPage>
                 context,
                 MaterialPageRoute(builder: (_) => const PengumumanPage()),
               ),
-          child: const Text(
-            'Lihat Semua →',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF2563eb),
-              fontWeight: FontWeight.w700,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2563eb),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2563eb).withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Text(
+              'Lihat Semua',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ),
@@ -1887,47 +1913,47 @@ class _BerandaPageState extends State<BerandaPage>
         duration: const Duration(milliseconds: 120),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: const Color(0xFFf8fafc),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFe2eafc),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: gradColors[1].withOpacity(isPressed ? 0.15 : 0.3),
-                blurRadius: isPressed ? 4 : 10,
-                offset: Offset(0, isPressed ? 2 : 4),
+                color: const Color(0xFF1e40af).withOpacity(0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  gradient: LinearGradient(
+                    colors: gradColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Colors.white, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   item.label,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF1d4ed8),
                     fontWeight: FontWeight.w800,
                     fontSize: 12.5,
                     height: 1.2,
                   ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white.withOpacity(0.6),
-                size: 12,
               ),
             ],
           ),
@@ -2014,8 +2040,8 @@ class _BerandaPageState extends State<BerandaPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _sectionHeader(
-              'Pengumuman',
-              'Informasi terkini dari desa',
+              'Pengumuman Terbaru',
+              '',
             ),
             const SizedBox(height: 12),
             Container(
@@ -2048,8 +2074,8 @@ class _BerandaPageState extends State<BerandaPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _sectionHeader(
-            'Pengumuman',
-            'Informasi terkini dari desa',
+            'Pengumuman Terbaru',
+            '',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PengumumanPage()),
@@ -2141,7 +2167,7 @@ class _BerandaPageState extends State<BerandaPage>
       // Dummy data
       judul = item.title;
       deskripsi = _stripHtml(item.desc);
-      tanggal = item.date;
+      tanggal = '${item.date}  •  09.30 WIB';
       leadingWidget = Center(
         child: Text(item.emoji, style: const TextStyle(fontSize: 22)),
       );
@@ -2150,7 +2176,7 @@ class _BerandaPageState extends State<BerandaPage>
       final realItem = item as svc_pengumuman.PengumumanItem;
       judul = realItem.judul;
       deskripsi = _stripHtml(realItem.isi);
-      tanggal = '${realItem.createdAt.day}/${realItem.createdAt.month}/${realItem.createdAt.year}';
+      tanggal = _formatTanggalPengumuman(realItem.createdAt);
       gambarUrl = realItem.gambarUrl;
 
       if (gambarUrl != null && gambarUrl.isNotEmpty) {
@@ -2161,14 +2187,14 @@ class _BerandaPageState extends State<BerandaPage>
             fit: BoxFit.cover,
             width: 48,
             height: 48,
-            errorBuilder: (_, __, ___) => const Center(
-              child: Icon(Icons.campaign_rounded, color: Color(0xFF2563eb), size: 22),
+            errorBuilder: (_, __, ___) => Center(
+              child: Icon(Icons.campaign_rounded, color: badgeColor, size: 22),
             ),
           ),
         );
       } else {
-        leadingWidget = const Center(
-          child: Icon(Icons.campaign_rounded, color: Color(0xFF2563eb), size: 22),
+        leadingWidget = Center(
+          child: Icon(Icons.campaign_rounded, color: badgeColor, size: 22),
         );
       }
     }
@@ -2229,17 +2255,17 @@ class _BerandaPageState extends State<BerandaPage>
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.calendar_today_rounded,
                           size: 10,
-                          color: badgeColor,
+                          color: Color(0xFF2563eb),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           tanggal,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 10,
-                            color: badgeColor,
+                            color: Color(0xFF2563eb),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
