@@ -545,21 +545,22 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
         ),
         const SizedBox(height: 10),
 
-        // Tombol Kembali
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
+          child: ElevatedButton.icon(
             onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF64748b),
-              side: const BorderSide(color: Color(0xFFe2e8f0)),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text(
+              'Batal',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
-            ),
-            child: const Text(
-              'Kembali',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              elevation: 0,
             ),
           ),
         ),

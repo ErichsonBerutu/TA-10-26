@@ -31,8 +31,15 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text('Logout'),
         content: const Text('Apakah Anda yakin ingin keluar dari akun ini?'),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text('Batal'),
           ),
           TextButton(
