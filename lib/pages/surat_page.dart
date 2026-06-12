@@ -8,6 +8,7 @@ import '../services/offline_database_service.dart';
 import 'beranda_page.dart' show BerandaPage;
 import 'pengaduan_page.dart';
 import 'pengumuman_page.dart';
+import 'profile_page.dart';
 import 'form_pengajuan_surat_page.dart';
 
 // ============================================================
@@ -127,7 +128,22 @@ class _SuratPageState extends State<SuratPage> {
         MaterialPageRoute(builder: (_) => const PengumumanPage()),
       );
     } else if (item == AppNavItem.profil) {
-      // TODO: Import ProfilePage dan AuthService sesuai kebutuhan
+      final authService = AuthService();
+      if (authService.isLoggedIn && authService.currentUser != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProfilePage(
+              user: authService.currentUser!,
+              authService: authService,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan login terlebih dahulu')),
+        );
+      }
     }
   }
 

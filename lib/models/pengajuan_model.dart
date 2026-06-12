@@ -8,6 +8,7 @@ enum StatusPengajuan { menunggu, diproses, disetujui, ditolak }
 
 class PengajuanSurat {
   final String id;
+  final int jenisSuratId;
   final String jenisSurat;
   final String emoji;
   final Map<String, String> data;
@@ -20,6 +21,7 @@ class PengajuanSurat {
 
   PengajuanSurat({
     required this.id,
+    required this.jenisSuratId,
     required this.jenisSurat,
     required this.emoji,
     required this.data,
@@ -91,13 +93,21 @@ class PengajuanSurat {
 
     String rawJenisSurat = 'Pengajuan Surat';
     String rawEmoji = '📝';
+    int rawJenisSuratId = json['id_jenis_surat'] != null
+        ? (int.tryParse(json['id_jenis_surat'].toString()) ?? 0)
+        : 0;
+
     if (json['jenis_surat'] != null) {
       rawJenisSurat = json['jenis_surat']['nama_surat']?.toString() ?? 'Pengajuan Surat';
       rawEmoji = _getEmojiForSurat(rawJenisSurat);
+      if (rawJenisSuratId == 0 && json['jenis_surat']['id_jenis_surat'] != null) {
+        rawJenisSuratId = int.tryParse(json['jenis_surat']['id_jenis_surat'].toString()) ?? 0;
+      }
     }
 
     return PengajuanSurat(
       id: json['id_pengajuan_surat']?.toString() ?? '',
+      jenisSuratId: rawJenisSuratId,
       jenisSurat: rawJenisSurat,
       emoji: rawEmoji,
       data: parsedData,

@@ -18,6 +18,7 @@ import '../models/pengaduan_model.dart' as model_pengaduan;
 import '../api_config/api_config.dart';
 import 'pdf_preview_page.dart';
 import 'pengaduan_detail_page.dart';
+import 'detail_pengajuan_page.dart';
 
 class RiwayatLayananPage extends StatefulWidget {
   const RiwayatLayananPage({super.key});
@@ -283,204 +284,217 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
 
     final isDisetujui = p.status == model_pengajuan.StatusPengajuan.disetujui;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFe2e8f0), width: 0.8),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailPengajuanPage(pengajuan: p),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Banner Status
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
+        ).then((_) {
+          _loadAllData();
+        });
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFe2e8f0), width: 0.8),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x05000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner Status
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(17)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Status: $statusText',
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Status: $statusText',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatTgl(p.tanggalAjuan),
-                  style: const TextStyle(
-                    color: Color(0xFF64748b),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
+                  const Spacer(),
+                  Text(
+                    _formatTgl(p.tanggalAjuan),
+                    style: const TextStyle(
+                      color: Color(0xFF64748b),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFeff6ff),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          p.emoji,
-                          style: const TextStyle(fontSize: 24),
+  
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFeff6ff),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            p.emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            p.jenisSurat,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                              color: Color(0xFF0f172a),
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'No. Registrasi: ${p.id}',
-                            style: const TextStyle(
-                              color: Color(0xFF64748b),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (p.data.containsKey('nama') || p.data.containsKey('nik')) ...[
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              '${p.data['nama'] ?? '-'}',
+                              p.jenisSurat,
                               style: const TextStyle(
-                                color: Color(0xFF334155),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: Color(0xFF0f172a),
+                                letterSpacing: -0.2,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 6),
                             Text(
-                              'NIK: ${p.data['nik'] ?? '-'}',
+                              'No. Registrasi: ${p.id}',
                               style: const TextStyle(
                                 color: Color(0xFF64748b),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            if (p.data.containsKey('nama') || p.data.containsKey('nik')) ...[
+                              Text(
+                                '${p.data['nama'] ?? '-'}',
+                                style: const TextStyle(
+                                  color: Color(0xFF334155),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'NIK: ${p.data['nik'] ?? '-'}',
+                                style: const TextStyle(
+                                  color: Color(0xFF64748b),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ],
+                        ),
+                      ),
+                    ],
+                  ),
+  
+                  if (p.status == model_pengajuan.StatusPengajuan.ditolak &&
+                      p.alasanTolak != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFfff5f5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFfee2e2)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.error_outline_rounded,
+                              color: Color(0xFFdc2626), size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Alasan Penolakan: ${p.alasanTolak}',
+                              style: const TextStyle(
+                                color: Color(0xFF991b1b),
+                                fontSize: 11.5,
+                                height: 1.4,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ],
-                ),
-
-                if (p.status == model_pengajuan.StatusPengajuan.ditolak &&
-                    p.alasanTolak != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFfff5f5),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFfee2e2)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+  
+                  // Action Buttons
+                  if (isDisetujui) ...[
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded,
-                            color: Color(0xFFdc2626), size: 16),
-                        const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            'Alasan Penolakan: ${p.alasanTolak}',
-                            style: const TextStyle(
-                              color: Color(0xFF991b1b),
-                              fontSize: 11.5,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PdfPreviewPage(pengajuan: p),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                            label: const Text(
+                              'Buka & Cetak PDF',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 12),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16a34a),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ],
-
-                // Action Buttons
-                if (isDisetujui) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PdfPreviewPage(pengajuan: p),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                          label: const Text(
-                            'Buka & Cetak PDF',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800, fontSize: 12),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF16a34a),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

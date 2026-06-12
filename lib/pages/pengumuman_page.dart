@@ -808,6 +808,7 @@ class _DetailPengumumanPage extends StatelessWidget {
                       // Isi pengumuman
                       Text(
                         _stripHtml(data.isi),
+                        textAlign: TextAlign.justify,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF334155),

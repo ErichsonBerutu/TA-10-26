@@ -167,9 +167,16 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
     final tglRespons = widget.pengajuan.tanggalRespons != null
         ? _formatTanggal(widget.pengajuan.tanggalRespons!)
         : '-';
-    final nama = widget.pengajuan.data['nama'] ?? widget.pengajuan.data['nama_anak'] ?? '-';
-    final nik = widget.pengajuan.data['nik'] ?? '-';
-    final alamat = widget.pengajuan.data['alamat'] ?? '-';
+    final nama = widget.pengajuan.data['nama'] ?? 
+                 widget.pengajuan.data['nama_lengkap'] ?? 
+                 widget.pengajuan.data['nama_pemohon'] ?? 
+                 widget.pengajuan.data['nama_lengkap_pemohon'] ?? 
+                 widget.pengajuan.data['nama_anak'] ?? '-';
+    final nik = widget.pengajuan.data['nik'] ?? 
+                widget.pengajuan.data['nik_pemohon'] ?? '-';
+    final alamat = widget.pengajuan.data['alamat'] ?? 
+                   widget.pengajuan.data['alamat_lengkap'] ?? 
+                   widget.pengajuan.data['alamat_pemohon'] ?? '-';
 
     return Container(
       decoration: BoxDecoration(
@@ -266,8 +273,15 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
                 ...widget.pengajuan.data.entries
                     .where((e) =>
                         e.key != 'nama' &&
+                        e.key != 'nama_lengkap' &&
+                        e.key != 'nama_pemohon' &&
+                        e.key != 'nama_lengkap_pemohon' &&
+                        e.key != 'nama_anak' &&
                         e.key != 'nik' &&
-                        e.key != 'alamat')
+                        e.key != 'nik_pemohon' &&
+                        e.key != 'alamat' &&
+                        e.key != 'alamat_lengkap' &&
+                        e.key != 'alamat_pemohon')
                     .map((e) => _dataRow(
                           _labelFromKey(e.key),
                           e.value,
@@ -398,6 +412,7 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
     const labels = {
       'ttl': 'Tempat/Tgl Lahir',
       'jk': 'Jenis Kelamin',
+      'jenis_kelamin': 'Jenis Kelamin',
       'keperluan': 'Keperluan',
       'nama_usaha': 'Nama Usaha',
       'jenis_usaha': 'Jenis Usaha',
@@ -421,7 +436,20 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
       'pelapor': 'Nama Pelapor',
       'hubungan': 'Hubungan',
     };
-    return labels[key] ?? key;
+    if (labels.containsKey(key)) return labels[key]!;
+
+    String normalized = key;
+    if (normalized.contains('tempat') && normalized.contains('tanggal')) {
+      return 'Tempat/Tgl Lahir';
+    }
+
+    normalized = normalized.replaceAll('_', ' ');
+    normalized = normalized.replaceAll(RegExp(r'\s*,\s*'), ' ');
+
+    return normalized.split(' ').map((str) {
+      if (str.isEmpty) return '';
+      return '${str[0].toUpperCase()}${str.substring(1)}';
+    }).join(' ');
   }
 
   // ── Action Buttons ───────────────────────────────────────

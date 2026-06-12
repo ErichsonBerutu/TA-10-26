@@ -231,6 +231,43 @@ class OfflineDatabaseService {
     debugPrint('OfflineDatabaseService: Item dengan ID $id dihapus dari antrean sync.');
   }
 
+  // ============================================================
+  //  PERSISTENT DRAFTS FOR DYNAMIC FORM FIELDS
+  // ============================================================
+
+  Future<void> simpanDraftPengajuan(int jenisSuratId, Map<String, String> answers) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('draft_pengajuan_$jenisSuratId', jsonEncode(answers));
+      debugPrint('OfflineDatabaseService: Draft untuk jenisSuratId $jenisSuratId disimpan.');
+    } catch (e) {
+      debugPrint('ERROR OfflineDatabaseService.simpanDraftPengajuan: $e');
+    }
+  }
+
+  Future<Map<String, String>> ambilDraftPengajuan(int jenisSuratId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString('draft_pengajuan_$jenisSuratId');
+      if (jsonString == null || jsonString.isEmpty) return {};
+      final decoded = jsonDecode(jsonString);
+      return Map<String, String>.from(decoded);
+    } catch (e) {
+      debugPrint('ERROR OfflineDatabaseService.ambilDraftPengajuan: $e');
+      return {};
+    }
+  }
+
+  Future<void> hapusDraftPengajuan(int jenisSuratId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('draft_pengajuan_$jenisSuratId');
+      debugPrint('OfflineDatabaseService: Draft untuk jenisSuratId $jenisSuratId dihapus.');
+    } catch (e) {
+      debugPrint('ERROR OfflineDatabaseService.hapusDraftPengajuan: $e');
+    }
+  }
+
   Future<void> bersihkanSemuaCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
