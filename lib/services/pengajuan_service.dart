@@ -49,6 +49,7 @@ class PengajuanService extends ChangeNotifier {
 
           return PengajuanSurat(
             id: item['id']?.toString() ?? 'PGJ-PENDING-${DateTime.now().millisecondsSinceEpoch}',
+            jenisSuratId: int.tryParse(payload['jenis_surat_id']?.toString() ?? '0') ?? 0,
             jenisSurat: payload['jenis_surat_nama']?.toString() ?? 'Pengajuan Surat',
             emoji: payload['emoji']?.toString() ?? '📝',
             data: localFormData,
@@ -109,12 +110,14 @@ class PengajuanService extends ChangeNotifier {
   // ── Tambah Pengajuan Baru ──────────────────────────────
   // (Tetap dipertahankan untuk kompatibilitas offline responsif)
   PengajuanSurat tambahPengajuan({
+    required int jenisSuratId,
     required String jenisSurat,
     required String emoji,
     required Map<String, String> data,
   }) {
     final pengajuan = PengajuanSurat(
       id: 'PGJ-${DateTime.now().millisecondsSinceEpoch}',
+      jenisSuratId: jenisSuratId,
       jenisSurat: jenisSurat,
       emoji: emoji,
       data: data,
@@ -152,6 +155,7 @@ class PengajuanService extends ChangeNotifier {
     // 2. Tambah item sementara ke list memori agar langsung tampil
     final pengajuan = PengajuanSurat(
       id: 'SYNC-${DateTime.now().millisecondsSinceEpoch}',
+      jenisSuratId: int.tryParse(jenisSuratId) ?? 0,
       jenisSurat: jenisSuratNama,
       emoji: emoji,
       data: localFormData,

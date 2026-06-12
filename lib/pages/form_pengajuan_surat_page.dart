@@ -14,12 +14,18 @@ import '../services/offline_database_service.dart';
 class FormPengajuanSuratPage extends StatefulWidget {
   final int jenisSuratId;
   final String namaSurat;
+  final String? editPengajuanId;
+  final Map<String, String>? existingData;
 
   const FormPengajuanSuratPage({
     super.key,
     required this.jenisSuratId,
     required this.namaSurat,
+    this.editPengajuanId,
+    this.existingData,
   });
+
+  bool get isEditMode => editPengajuanId != null;
 
   @override
   State<FormPengajuanSuratPage> createState() => _FormPengajuanSuratPageState();
@@ -41,12 +47,28 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   final Map<String, TextEditingController> _controllers = {};
 
   bool _isSubmitting = false;
+  List<Map<String, dynamic>> _familyMembers = [];
+  bool _isLoadingFamily = true;
 
   @override
   void initState() {
     super.initState();
     _fetchPersyaratan();
+    // Jika mode edit, muat data existing ke draft agar terisi otomatis
+    if (widget.isEditMode && widget.existingData != null) {
+      _preloadExistingData();
+    }
   }
+
+  /// Muat data existing ke draft lokal untuk pre-fill saat edit
+  Future<void> _preloadExistingData() async {
+    if (widget.existingData == null) return;
+    // Draft akan di-load oleh _fetchPersyaratan -> _initFieldState
+    // Simpan data ke _existingDataCache agar _initFieldState bisa mencocokkan
+    _existingDataCache = widget.existingData;
+  }
+
+  Map<String, String>? _existingDataCache;
 
   @override
   void dispose() {
@@ -61,8 +83,429 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     return '';
   }
 
+  bool _isNikField(String label) {
+    final lower = label.toLowerCase().trim();
+    return lower == 'nik' ||
+        lower.contains('no. nik') ||
+        lower.contains('no.nik') ||
+        lower.contains('nomor nik') ||
+        lower.contains('nomor induk kependudukan') ||
+        lower == 'n i k' ||
+        lower == 'no ktp' ||
+        lower == 'no. ktp' ||
+        lower == 'nomor ktp' ||
+        lower == 'ktp' ||
+        lower.contains('no. ktp') ||
+        lower.contains('nomor ktp') ||
+        lower.contains('no ktp');
+  }
+
+  bool _isCheckingNik = false;
+
+  Future<void> _checkAndAutoFillNik(String nik, String nikFieldId) async {
+    if (nik.length != 16) return;
+    if (_isCheckingNik) return;
+
+    setState(() {
+      _isCheckingNik = true;
+    });
+
+    // Tampilkan Loading Dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563eb)),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Memverifikasi NIK...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Color(0xFF1e293b),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Mengambil data penduduk secara otomatis',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748b),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    final token = AuthService().token;
+    if (token == null) {
+      if (mounted) Navigator.pop(context); // Tutup dialog
+      setState(() {
+        _isCheckingNik = false;
+      });
+      return;
+    }
+
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/penduduk/nik/$nik');
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (mounted) {
+        Navigator.pop(context); // Tutup dialog
+      }
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['status'] == 'success' && body['data'] != null) {
+          final data = body['data'];
+          final namaLengkap = data['nama_lengkap'] ?? '';
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('NIK Teridentifikasi: $namaLengkap'),
+                backgroundColor: const Color(0xFF16a34a),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          // Update other fields in form
+          for (final model in _persyaratan) {
+            final keyStr = model.id.toString();
+            final fieldLabel = model.namaField.toLowerCase().trim();
+
+            if (keyStr == nikFieldId) continue;
+
+            if (fieldLabel == 'nama' || fieldLabel == 'nama lengkap' || fieldLabel.contains('nama pemohon') || fieldLabel.contains('nama lengkap pemohon')) {
+              if (data['nama_lengkap'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['nama_lengkap'];
+              }
+            } else if (fieldLabel == 'alamat' || fieldLabel.contains('alamat ktp') || fieldLabel.contains('alamat lengkap') || fieldLabel.contains('alamat domisili')) {
+              if (data['alamat'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['alamat'];
+              }
+            } else if (fieldLabel == 'pekerjaan' || fieldLabel.contains('pekerjaan')) {
+              if (data['pekerjaan'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['pekerjaan'];
+              }
+            } else if (fieldLabel == 'tempat lahir' || fieldLabel.contains('tempat lahir') || fieldLabel == 'tempat_lahir') {
+              if (data['tempat_lahir'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['tempat_lahir'];
+              }
+            } else if (fieldLabel == 'tanggal lahir' || fieldLabel.contains('tanggal lahir') || fieldLabel == 'tanggal_lahir' || fieldLabel == 'tgl_lahir') {
+              if (data['tanggal_lahir'] != null) {
+                if (model.tipeField == 'date') {
+                  setState(() {
+                    _answers[keyStr] = data['tanggal_lahir'];
+                  });
+                } else if (_controllers[keyStr] != null) {
+                  _controllers[keyStr]!.text = data['tanggal_lahir'];
+                }
+              }
+            } else if (fieldLabel == 'jenis kelamin' || fieldLabel == 'kelamin' || fieldLabel.contains('jenis kelamin') || fieldLabel == 'gender') {
+              if (data['jenis_kelamin'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['jenis_kelamin'];
+              }
+            } else if (fieldLabel == 'agama' || fieldLabel.contains('agama')) {
+              if (data['agama'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['agama'];
+              }
+            } else if (fieldLabel == 'kk' || fieldLabel.contains('no. kk') || fieldLabel.contains('nomor kk') || fieldLabel.contains('nomor kartu keluarga')) {
+              if (data['no_kk'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['no_kk'];
+              }
+            } else if (fieldLabel == 'nama ayah' || fieldLabel.contains('nama_ayah') || fieldLabel == 'ayah') {
+              if (data['nama_ayah'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['nama_ayah'];
+              }
+            } else if (fieldLabel == 'nama ibu' || fieldLabel.contains('nama_ibu') || fieldLabel == 'ibu') {
+              if (data['nama_ibu'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['nama_ibu'];
+              }
+            } else if (fieldLabel == 'suku' || fieldLabel.contains('suku')) {
+              if (data['suku'] != null && _controllers[keyStr] != null) {
+                _controllers[keyStr]!.text = data['suku'];
+              }
+            }
+          }
+          _saveDraft();
+        }
+      } else if (response.statusCode == 404) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('NIK tidak ditemukan di database desa.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Tutup dialog jika error
+      }
+      debugPrint("Error checking NIK: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingNik = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchFamilyMembers() async {
+    final token = AuthService().token;
+    if (token == null) return;
+
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/penduduk/family');
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['status'] == 'success' && body['data'] != null) {
+          final List rawList = body['data'];
+          if (mounted) {
+            setState(() {
+              _familyMembers = List<Map<String, dynamic>>.from(rawList);
+              _isLoadingFamily = false;
+            });
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching family members: $e");
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingFamily = false;
+      });
+    }
+  }
+
+  void _autoFillFromFamilyData(String nik, String nikFieldId) {
+    final member = _familyMembers.firstWhere((m) => m['nik'] == nik, orElse: () => {});
+    if (member.isEmpty) return;
+
+    final namaLengkap = member['nama_lengkap'] ?? '';
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Memilih data keluarga: $namaLengkap'),
+          backgroundColor: const Color(0xFF16a34a),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // Update other fields in form
+    for (final model in _persyaratan) {
+      final keyStr = model.id.toString();
+      final fieldLabel = model.namaField.toLowerCase().trim();
+
+      if (keyStr == nikFieldId) continue;
+
+      if (fieldLabel == 'nama' || fieldLabel == 'nama lengkap' || fieldLabel.contains('nama pemohon') || fieldLabel.contains('nama lengkap pemohon')) {
+        if (member['nama_lengkap'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['nama_lengkap'];
+        }
+      } else if (fieldLabel == 'alamat' || fieldLabel.contains('alamat ktp') || fieldLabel.contains('alamat lengkap') || fieldLabel.contains('alamat domisili')) {
+        if (member['alamat'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['alamat'];
+        }
+      } else if (fieldLabel == 'pekerjaan' || fieldLabel.contains('pekerjaan')) {
+        if (member['pekerjaan'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['pekerjaan'];
+        }
+      } else if (fieldLabel == 'tempat lahir' || fieldLabel.contains('tempat lahir') || fieldLabel == 'tempat_lahir') {
+        if (member['tempat_lahir'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['tempat_lahir'];
+        }
+      } else if (fieldLabel == 'tanggal lahir' || fieldLabel.contains('tanggal lahir') || fieldLabel == 'tanggal_lahir' || fieldLabel == 'tgl_lahir') {
+        if (member['tanggal_lahir'] != null) {
+          if (model.tipeField == 'date') {
+            setState(() {
+              _answers[keyStr] = member['tanggal_lahir'];
+            });
+          } else if (_controllers[keyStr] != null) {
+            _controllers[keyStr]!.text = member['tanggal_lahir'];
+          }
+        }
+      } else if (fieldLabel == 'jenis kelamin' || fieldLabel == 'kelamin' || fieldLabel.contains('jenis kelamin') || fieldLabel == 'gender') {
+        if (member['jenis_kelamin'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['jenis_kelamin'];
+        }
+      } else if (fieldLabel == 'agama' || fieldLabel.contains('agama')) {
+        if (member['agama'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['agama'];
+        }
+      } else if (fieldLabel == 'kk' || fieldLabel.contains('no. kk') || fieldLabel.contains('nomor kk') || fieldLabel.contains('nomor kartu keluarga')) {
+        if (member['no_kk'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['no_kk'];
+        }
+      } else if (fieldLabel == 'nama ayah' || fieldLabel.contains('nama_ayah') || fieldLabel == 'ayah') {
+        if (member['nama_ayah'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['nama_ayah'];
+        }
+      } else if (fieldLabel == 'nama ibu' || fieldLabel.contains('nama_ibu') || fieldLabel == 'ibu') {
+        if (member['nama_ibu'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['nama_ibu'];
+        }
+      } else if (fieldLabel == 'suku' || fieldLabel.contains('suku')) {
+        if (member['suku'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['suku'];
+        }
+      }
+    }
+    _saveDraft();
+  }
+
+
+  // ── PERSISTENT FORM DRAFTS UTILITIES ─────────────────────────────
+  Future<void> _saveDraft() async {
+    final Map<String, String> draftMap = {};
+    _controllers.forEach((key, controller) {
+      if (controller.text.trim().isNotEmpty) {
+        draftMap[key] = controller.text.trim();
+      }
+    });
+
+    _answers.forEach((key, value) {
+      if (value is String && value.isNotEmpty) {
+        draftMap[key] = value;
+      } else if (value is XFile) {
+        draftMap[key] = '[FILE_PATH]${value.path}';
+      }
+    });
+
+    await OfflineDatabaseService().simpanDraftPengajuan(widget.jenisSuratId, draftMap);
+  }
+
+  /// Mencocokkan data existing dari pengajuan lama ke ID persyaratan
+  String? _matchExistingData(PersyaratanSuratModel model) {
+    if (_existingDataCache == null) return null;
+    // Cari berdasarkan nama field (case-insensitive)
+    for (final entry in _existingDataCache!.entries) {
+      if (entry.key.trim().toLowerCase() == model.namaField.trim().toLowerCase()) {
+        // Skip file fields
+        if (entry.value.startsWith('[Unggahan Foto]') || entry.value.startsWith('[FILE_PATH]')) {
+          return null;
+        }
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _initFieldState(PersyaratanSuratModel model, Map<String, String> draft) async {
+    final keyStr = model.id.toString();
+    final draftVal = draft[keyStr];
+    // Jika mode edit, coba ambil data existing
+    final existingVal = _matchExistingData(model);
+
+    if (model.tipeField == 'text' || model.tipeField == 'number') {
+      final initialVal = draftVal ?? existingVal ?? _getAutoFillValue(model.namaField);
+      
+      if (_controllers[keyStr] == null) {
+        final controller = TextEditingController(text: initialVal);
+        _controllers[keyStr] = controller;
+        controller.addListener(_saveDraft);
+
+        if (_isNikField(model.namaField)) {
+          controller.addListener(() {
+            final text = controller.text.trim();
+            if (text.length == 16) {
+              _checkAndAutoFillNik(text, keyStr);
+            }
+          });
+
+          if (initialVal.length == 16) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _checkAndAutoFillNik(initialVal, keyStr);
+            });
+          }
+        }
+      } else {
+        if (_controllers[keyStr]!.text.isEmpty && initialVal.isNotEmpty) {
+          _controllers[keyStr]!.text = initialVal;
+        }
+      }
+    } else if (model.tipeField == 'date') {
+      if (draftVal != null) {
+        _answers[keyStr] = draftVal;
+      } else if (existingVal != null) {
+        _answers[keyStr] = existingVal;
+      } else if (_answers[keyStr] == null) {
+        final lower = model.namaField.toLowerCase();
+        if (lower.contains('tanggal lahir') || 
+            lower.contains('tgl lahir') || 
+            lower.contains('tgl. lahir') || 
+            lower.contains('tgl_lahir')) {
+          final user = AuthService().currentUser;
+          if (user != null && user.tanggalLahir != null) {
+            final tgl = user.tanggalLahir!;
+            final formatted = "${tgl.year}-${tgl.month.toString().padLeft(2, '0')}-${tgl.day.toString().padLeft(2, '0')}";
+            _answers[keyStr] = formatted;
+          }
+        }
+      }
+    } else if (model.tipeField == 'file_image') {
+      if (draftVal != null && draftVal.startsWith('[FILE_PATH]') && _answers[keyStr] == null) {
+        final filePath = draftVal.replaceFirst('[FILE_PATH]', '');
+        final file = File(filePath);
+        if (await file.exists()) {
+          _answers[keyStr] = XFile(filePath);
+        }
+      }
+    }
+  }
+
   // ── LOAD DYNAMIC REQUIREMENTS FROM API ──────────────────────────
   Future<void> _fetchPersyaratan() async {
+    _fetchFamilyMembers();
     setState(() {
       _isLoadingRequirements = true;
       _errorMessage = null;
@@ -77,12 +520,13 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       return;
     }
 
-    // Fetch data profil terbaru dari server secara sinkron untuk memastikan data auto-fill terupdate
     try {
       await AuthService().fetchLatestProfile();
     } catch (e) {
       debugPrint('Silent profile sync error in form: $e');
     }
+
+    final draft = await OfflineDatabaseService().ambilDraftPengajuan(widget.jenisSuratId);
 
     // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
     final localData = await OfflineDatabaseService().ambilPersyaratan(widget.jenisSuratId);
@@ -91,12 +535,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       for (var item in localData) {
         final model = PersyaratanSuratModel.fromJson(item);
         loaded.add(model);
-
-        final keyStr = model.id.toString();
-        // Inisialisasi controller jika berupa input teks/angka
-        if (model.tipeField == 'text' || model.tipeField == 'number') {
-          _controllers[keyStr] = TextEditingController();
-        }
+        await _initFieldState(model, draft);
       }
 
       setState(() {
@@ -125,15 +564,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           for (var item in rawList) {
             final model = PersyaratanSuratModel.fromJson(item);
             loaded.add(model);
-
-            final keyStr = model.id.toString();
-            // Inisialisasi controller jika berupa input teks/angka
-            if (model.tipeField == 'text' || model.tipeField == 'number') {
-              // Update atau inisialisasi controller baru
-              if (_controllers[keyStr] == null) {
-                _controllers[keyStr] = TextEditingController();
-              }
-            }
+            await _initFieldState(model, draft);
           }
 
           setState(() {
@@ -142,7 +573,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             _errorMessage = null;
           });
 
-          // Simpan data terbaru ke cache
           final List<Map<String, dynamic>> cacheList = rawList
               .map((item) => Map<String, dynamic>.from(item))
               .toList();
@@ -178,7 +608,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   Future<void> _pickDate(String persyaratanId, String fieldLabel) async {
     DateTime initialDate = DateTime.now();
     
-    // Gunakan tanggal yang sudah dipilih sebelumnya sebagai tanggal awal jika ada
     if (_answers[persyaratanId] != null) {
       final parsed = DateTime.tryParse(_answers[persyaratanId]);
       if (parsed != null) initialDate = parsed;
@@ -204,11 +633,11 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     );
 
     if (picked != null) {
-      // Simpan format tanggal YYYY-MM-DD
       final formatted = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {
         _answers[persyaratanId] = formatted;
       });
+      _saveDraft();
     }
   }
 
@@ -224,6 +653,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         setState(() {
           _answers[persyaratanId] = pickedFile;
         });
+        _saveDraft();
       }
     } catch (e) {
       debugPrint("Error picking image: $e");
@@ -241,11 +671,11 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     setState(() {
       _answers.remove(persyaratanId);
     });
+    _saveDraft();
   }
 
   // ── SUBMIT MULTIPART FORM DATA ─────────────────────────────────
   Future<void> _submitForm() async {
-    // 1. Sinkronisasi nilai controller ke Map State
     _controllers.forEach((key, controller) {
       if (controller.text.trim().isNotEmpty) {
         _answers[key] = controller.text.trim();
@@ -254,7 +684,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       }
     });
 
-    // 2. Validasi Form secara visual
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -265,7 +694,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       return;
     }
 
-    // 3. Validasi Manual Tambahan untuk field Non-Text (Date & File) yang required
     for (final syarat in _persyaratan) {
       final key = syarat.id.toString();
       if (syarat.isRequired && (_answers[key] == null || _answers[key].toString().isEmpty)) {
@@ -279,7 +707,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       }
     }
 
-    // 4. Verifikasi Status Login & Role
     final authService = AuthService();
     final token = authService.token;
     if (token == null) {
@@ -290,38 +717,37 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/dynamic/pengajuan');
+      // Tentukan URL: jika edit mode, gunakan endpoint update
+      final isEdit = widget.isEditMode;
+      final url = isEdit
+          ? Uri.parse('${ApiConfig.baseUrl}/dynamic/pengajuan/${widget.editPengajuanId}')
+          : Uri.parse('${ApiConfig.baseUrl}/dynamic/pengajuan');
       
-      // Menggunakan http.MultipartRequest untuk mendukung pengiriman file
       final request = http.MultipartRequest('POST', url);
       
-      // Header Autentikasi
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
 
-      // Parameter Dasar
-      request.fields['jenis_surat_id'] = widget.jenisSuratId.toString();
+      if (!isEdit) {
+        request.fields['jenis_surat_id'] = widget.jenisSuratId.toString();
+      }
 
-      // Looping untuk menyematkan answers
       for (final entry in _answers.entries) {
         final key = entry.key;
         final value = entry.value;
 
         if (value is XFile) {
-          // Tambahkan file gambar ke multipart
           request.files.add(
             await http.MultipartFile.fromPath(
-              'answers[$key]', // Sesuai format array name di Laravel: answers[id]
+              'answers[$key]',
               value.path,
             ),
           );
         } else if (value != null && value.toString().isNotEmpty) {
-          // Tambahkan teks biasa ke multipart
           request.fields['answers[$key]'] = value.toString();
         }
       }
 
-      // Kirim request
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
@@ -331,8 +757,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Berhasil dikirim ke backend!
-        // Konversi data lokal ke format Map<String, String> untuk sinkronisasi antarmuka riwayat offline
         final Map<String, String> localFormData = {};
         for (final syarat in _persyaratan) {
           final key = syarat.id.toString();
@@ -344,24 +768,34 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           }
         }
 
-        // Tambah ke riwayat lokal responsif
-        pengajuan_service.PengajuanService().tambahPengajuan(
-          jenisSurat: widget.namaSurat,
-          emoji: _getEmojiForSurat(widget.namaSurat),
-          data: localFormData,
-        );
+        if (!isEdit) {
+          pengajuan_service.PengajuanService().tambahPengajuan(
+            jenisSuratId: widget.jenisSuratId,
+            jenisSurat: widget.namaSurat,
+            emoji: _getEmojiForSurat(widget.namaSurat),
+            data: localFormData,
+          );
+        }
+
+        await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
 
         setState(() => _isSubmitting = false);
         _showSuccessDialog();
       } else {
         setState(() => _isSubmitting = false);
-        final errMsg = responseData['message'] ?? 'Gagal memproses pengajuan surat ke server.';
+        final errMsg = responseData['message'] ?? (isEdit ? 'Gagal memperbarui pengajuan surat.' : 'Gagal memproses pengajuan surat ke server.');
         _showErrorDialog(errMsg);
       }
     } catch (e) {
+      if (widget.isEditMode) {
+        // Mode edit tidak support offline queue — tampilkan error
+        setState(() => _isSubmitting = false);
+        _showErrorDialog('Gagal memperbarui pengajuan. Periksa koneksi internet Anda dan coba lagi.');
+        return;
+      }
+
       debugPrint('Koneksi bermasalah saat mengirim pengajuan, menyimpan ke antrean offline: $e');
       
-      // Buat format localFormData
       final Map<String, String> localFormData = {};
       for (final syarat in _persyaratan) {
         final key = syarat.id.toString();
@@ -373,7 +807,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         }
       }
 
-      // Serialisasikan answers (ubah XFile menjadi path string)
       final Map<String, dynamic> serializableAnswers = {};
       _answers.forEach((key, value) {
         if (value is XFile) {
@@ -383,7 +816,6 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         }
       });
 
-      // Simpan ke Sync Queue dan list lokal
       await pengajuan_service.PengajuanService().tambahPengajuanOffline(
         jenisSuratId: widget.jenisSuratId.toString(),
         jenisSuratNama: widget.namaSurat,
@@ -392,8 +824,10 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         localFormData: localFormData,
       );
 
+      await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
+
       setState(() => _isSubmitting = false);
-      _showSuccessDialog(); // Tetap tampilkan sukses karena sudah tersimpan secara offline
+      _showSuccessDialog();
     }
   }
 
@@ -471,9 +905,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Pengajuan Dikirim! 🎉',
-                style: TextStyle(
+              Text(
+                widget.isEditMode ? 'Pengajuan Diperbarui! ✏️' : 'Pengajuan Dikirim! 🎉',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF1e293b),
@@ -481,7 +915,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Permohonan ${widget.namaSurat} Anda telah berhasil dikirim ke server desa. Mohon pantau status pengajuan secara berkala di menu riwayat.',
+                widget.isEditMode
+                    ? 'Permohonan ${widget.namaSurat} Anda telah berhasil diperbarui. Mohon pantau status pengajuan secara berkala di menu riwayat.'
+                    : 'Permohonan ${widget.namaSurat} Anda telah berhasil dikirim ke server desa. Mohon pantau status pengajuan secara berkala di menu riwayat.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13,
@@ -541,61 +977,223 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Baris Label Field
-          RichText(
-            text: TextSpan(
-              text: field.namaField,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1e293b),
-              ),
-              children: [
-                if (field.isRequired)
-                  const TextSpan(
-                    text: ' *',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    text: field.namaField,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1e293b),
+                    ),
+                    children: [
+                      if (field.isRequired)
+                        const TextSpan(
+                          text: ' *',
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 
           // Tipe Input Form Builder
           if (field.tipeField == 'text' || field.tipeField == 'number') ...[
-            TextFormField(
-              controller: _controllers[keyStr],
-              keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF1e293b)),
-              decoration: InputDecoration(
-                hintText: "Masukkan ${field.namaField.toLowerCase()}",
-                hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
-                fillColor: const Color(0xFFf8fafc),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+            if (_isNikField(field.namaField)) ...[
+              if (_isLoadingFamily) ...[
+                DropdownButtonFormField<String>(
+                  initialValue: null,
+                  items: const [],
+                  onChanged: null,
+                  decoration: InputDecoration(
+                    hintText: "Memuat data keluarga...",
+                    hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
+                    fillColor: const Color(0xFFf8fafc),
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    suffixIcon: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563eb))),
+                      ),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2563eb), width: 1.5),
+              ] else if (_familyMembers.isNotEmpty) ...[
+                Builder(
+                  builder: (context) {
+                    String? selectedValue;
+                    final currentText = _controllers[keyStr]?.text.trim() ?? '';
+                    final exists = _familyMembers.any((m) => m['nik'] == currentText);
+                    if (exists) {
+                      selectedValue = currentText;
+                    } else if (currentText.isEmpty && _familyMembers.isNotEmpty) {
+                      final userNik = AuthService().currentUser?.nik ?? '';
+                      final userMember = _familyMembers.firstWhere((m) => m['nik'] == userNik, orElse: () => _familyMembers.first);
+                      selectedValue = userMember['nik'];
+                      _controllers[keyStr]?.text = selectedValue ?? '';
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _autoFillFromFamilyData(selectedValue!, keyStr);
+                      });
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: selectedValue,
+                      style: const TextStyle(
+                        fontSize: 14, 
+                        color: Color(0xFF1e293b),
+                      ),
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        hintText: "Pilih NIK Keluarga",
+                        hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
+                        fillColor: const Color(0xFFf8fafc),
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2563eb), 
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.red, width: 1.0),
+                        ),
+                      ),
+                      items: _familyMembers.map((member) {
+                        final nik = member['nik'] ?? '';
+                        final nama = member['nama_lengkap'] ?? '';
+                        return DropdownMenuItem<String>(
+                          value: nik,
+                          child: Text(
+                            "$nik - $nama",
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _controllers[keyStr]?.text = val;
+                          });
+                          _autoFillFromFamilyData(val, keyStr);
+                        }
+                      },
+                      validator: (val) {
+                        if (field.isRequired && (val == null || val.trim().isEmpty)) {
+                          return "NIK wajib dipilih.";
+                        }
+                        return null;
+                      },
+                    );
+                  }
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+              ] else ...[
+                TextFormField(
+                  controller: _controllers[keyStr],
+                  keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
+                  style: const TextStyle(
+                    fontSize: 14, 
+                    color: Color(0xFF1e293b),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "Masukkan ${field.namaField.toLowerCase()}",
+                    hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
+                    fillColor: const Color(0xFFf8fafc),
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF2563eb), 
+                        width: 1.5,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.red, width: 1.0),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (field.isRequired && (val == null || val.trim().isEmpty)) {
+                      return "Isian '${field.namaField}' wajib diisi.";
+                    }
+                    return null;
+                  },
                 ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.red, width: 1.0),
+              ],
+            ] else ...[
+              TextFormField(
+                controller: _controllers[keyStr],
+                keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
+                style: const TextStyle(
+                  fontSize: 14, 
+                  color: Color(0xFF1e293b),
                 ),
+                decoration: InputDecoration(
+                  hintText: "Masukkan ${field.namaField.toLowerCase()}",
+                  hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
+                  fillColor: const Color(0xFFf8fafc),
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF2563eb), 
+                      width: 1.5,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.0),
+                  ),
+                ),
+                validator: (val) {
+                  if (field.isRequired && (val == null || val.trim().isEmpty)) {
+                    return "Isian '${field.namaField}' wajib diisi.";
+                  }
+                  return null;
+                },
               ),
-              validator: (val) {
-                if (field.isRequired && (val == null || val.trim().isEmpty)) {
-                  return "Isian '${field.namaField}' wajib diisi.";
-                }
-                return null;
-              },
-            ),
+            ],
           ] else if (field.tipeField == 'date') ...[
             // Tampilan Custom Date Picker Selector
             InkWell(
@@ -930,8 +1528,8 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Formulir Persyaratan Dinamis',
+                Text(
+                  widget.isEditMode ? 'Edit Formulir Pengajuan' : 'Formulir Persyaratan Dinamis',
                   style: TextStyle(
                     color: Color(0xFF1e3a8a),
                     fontWeight: FontWeight.w800,
@@ -940,7 +1538,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Lengkapi semua berkas dan isian berikut dengan benar untuk pengajuan surat "${widget.namaSurat}".',
+                  widget.isEditMode
+                      ? 'Ubah data yang perlu diperbaiki lalu kirim ulang permohonan surat "${widget.namaSurat}".'
+                      : 'Lengkapi semua berkas dan isian berikut dengan benar untuk pengajuan surat "${widget.namaSurat}".',
                   style: const TextStyle(
                     color: Color(0xFF2563eb),
                     fontSize: 11,
@@ -975,8 +1575,8 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         child: _isSubmitting
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  SizedBox(
+                children: [
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
@@ -984,21 +1584,21 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                       strokeWidth: 2.0,
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
-                    'Mengirim Pengajuan...',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    widget.isEditMode ? 'Memperbarui Pengajuan...' : 'Mengirim Pengajuan...',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                 ],
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.send_rounded, size: 18),
-                  SizedBox(width: 8),
+                children: [
+                  Icon(widget.isEditMode ? Icons.save_rounded : Icons.send_rounded, size: 18),
+                  const SizedBox(width: 8),
                   Text(
-                    'Kirim Permohonan Surat',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    widget.isEditMode ? 'Simpan Perubahan' : 'Kirim Permohonan Surat',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                 ],
               ),

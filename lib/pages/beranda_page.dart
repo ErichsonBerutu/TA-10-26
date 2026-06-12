@@ -7,6 +7,9 @@ import '../services/berita_service.dart';
 import '../services/pengumuman_service.dart' as svc_pengumuman;
 import '../services/sync_service.dart';
 import '../services/fcm_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config/api_config.dart';
 import 'notifikasi_page.dart';
 import 'pengumuman_page.dart';
 import 'surat_page.dart';
@@ -257,6 +260,41 @@ class BerandaPage extends StatefulWidget {
 
 class _BerandaPageState extends State<BerandaPage>
     with TickerProviderStateMixin {
+  // Dynamic settings/info desa
+  String _namaDesa = 'Hutabulu Mejan';
+  String _alamatDesa = 'Desa Hutabulu Mejan';
+  String _nomorHp = '+62 812 3456 7890';
+  String _emailDesa = 'desa@hutabulumejan.go.id';
+  String _jamKerja = 'Senin – Jumat, 08.00 – 16.00';
+
+  Future<void> _fetchSettings() async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/settings');
+      final response = await http.get(
+        url,
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        if (body['status'] == 'success' && body['data'] != null) {
+          final data = body['data'];
+          if (mounted) {
+            setState(() {
+              _namaDesa = data['nama_desa']?.toString() ?? _namaDesa;
+              _alamatDesa = data['alamat_desa']?.toString() ?? _alamatDesa;
+              _nomorHp = data['nomor_hp']?.toString() ?? _nomorHp;
+              _emailDesa = data['email']?.toString() ?? _emailDesa;
+              _jamKerja = data['jam_kerja']?.toString() ?? _jamKerja;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('ERROR _fetchSettings: $e');
+    }
+  }
+
   int _activeSlide = 0;
   Timer? _timer;
   final PageController _pageController = PageController();
@@ -303,6 +341,7 @@ class _BerandaPageState extends State<BerandaPage>
 
     // Fetch notifikasi, berita, & pengumuman dari server saat beranda dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _fetchSettings(); // Muat pengaturan profil desa dinamis
       await FcmService().initialize(); // Inisialisasi FCM Service saat beranda terbuka
       _notifSvc.startPeriodicFetch(intervalSeconds: 10);
       _beritaSvc.muatBerita(forceRefresh: true);
@@ -662,9 +701,9 @@ class _BerandaPageState extends State<BerandaPage>
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'Hutabulu Mejan',
-                  style: TextStyle(
+                Text(
+                  _namaDesa,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF0f172a),
@@ -693,25 +732,25 @@ class _BerandaPageState extends State<BerandaPage>
                     children: [
                       _dialogRow(
                         Icons.location_on_rounded,
-                        'Desa Hutabulu Mejan',
+                        _alamatDesa,
                         const Color(0xFFef4444),
                       ),
                       const SizedBox(height: 10),
                       _dialogRow(
                         Icons.phone_rounded,
-                        '+62 812 3456 7890',
+                        _nomorHp,
                         const Color(0xFF16a34a),
                       ),
                       const SizedBox(height: 10),
                       _dialogRow(
                         Icons.access_time_rounded,
-                        'Senin – Jumat, 08.00 – 16.00',
+                        _jamKerja,
                         const Color(0xFFd97706),
                       ),
                       const SizedBox(height: 10),
                       _dialogRow(
                         Icons.email_rounded,
-                        'desa@hutabulumejan.go.id',
+                        _emailDesa,
                         const Color(0xFF2563eb),
                       ),
                     ],
@@ -1591,12 +1630,14 @@ class _BerandaPageState extends State<BerandaPage>
 
   void _showBeritaDetail(BeritaItem berita) {
     final hasImage = berita.gambarUrl != null && berita.gambarUrl!.isNotEmpty;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => Container(
+        constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
         padding: const EdgeInsets.only(top: 12),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -1693,46 +1734,60 @@ class _BerandaPageState extends State<BerandaPage>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      berita.deskripsi,
+                      _stripHtml(berita.deskripsi),
+                      textAlign: TextAlign.justify,
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF475569),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1e3a8a), Color(0xFF2563eb)],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF2563eb).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Selesai Membaca',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
+                        fontSize: 14,
+                        color: Color(0xFF334155),
+                        height: 1.65,
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
+                ),
+              ),
+            ),
+            // Tombol di luar ScrollView agar tetap melayang/di bawah
+            Container(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1e3a8a), Color(0xFF2563eb)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563eb).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Tutup',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1872,12 +1927,16 @@ class _BerandaPageState extends State<BerandaPage>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563eb),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1e3a8a), Color(0xFF2563eb)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563eb).withOpacity(0.25),
-                  blurRadius: 8,
+                  color: const Color(0xFF2563eb).withOpacity(0.3),
+                  blurRadius: 6,
                   offset: const Offset(0, 3),
                 ),
               ],
@@ -1885,7 +1944,7 @@ class _BerandaPageState extends State<BerandaPage>
             child: const Text(
               'Lihat Semua',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
@@ -2297,12 +2356,14 @@ class _BerandaPageState extends State<BerandaPage>
 
   void _showPengumumanDetail(svc_pengumuman.PengumumanItem pengumuman) {
     final hasImage = pengumuman.gambarUrl != null && pengumuman.gambarUrl!.isNotEmpty;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => Container(
+        constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
         padding: const EdgeInsets.only(top: 12),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -2389,13 +2450,19 @@ class _BerandaPageState extends State<BerandaPage>
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      'Diterbitkan oleh: ${pengumuman.namaPembuat}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748b),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.person_rounded, size: 12, color: Color(0xFF64748b)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Diterbitkan oleh: ${pengumuman.namaPembuat}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748b),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -2406,45 +2473,59 @@ class _BerandaPageState extends State<BerandaPage>
                     const SizedBox(height: 12),
                     Text(
                       _stripHtml(pengumuman.isi),
+                      textAlign: TextAlign.justify,
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF475569),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF16a34a), Color(0xFF15803d)],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF16a34a).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Tutup Pengumuman',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
+                        fontSize: 14,
+                        color: Color(0xFF334155),
+                        height: 1.65,
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
+                ),
+              ),
+            ),
+            // Tombol di luar ScrollView agar tetap melayang/di bawah
+            Container(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF16a34a), Color(0xFF15803d)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF16a34a).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Tutup Pengumuman',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
