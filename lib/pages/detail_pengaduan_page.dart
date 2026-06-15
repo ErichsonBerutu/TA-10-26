@@ -276,7 +276,7 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       case StatusPengaduan.menunggu:
         return Colors.orange;
       case StatusPengaduan.diproses:
-        return Colors.blue;
+        return Colors.orange;
       case StatusPengaduan.selesai:
         return Colors.green;
       case StatusPengaduan.ditolak:
@@ -289,7 +289,7 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       case StatusPengaduan.menunggu:
         return '⏳';
       case StatusPengaduan.diproses:
-        return '📖';
+        return '⏳';
       case StatusPengaduan.selesai:
         return '✅';
       case StatusPengaduan.ditolak:
@@ -302,7 +302,7 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       case StatusPengaduan.menunggu:
         return 'Menunggu';
       case StatusPengaduan.diproses:
-        return 'Berhasil Dibaca';
+        return 'Menunggu';
       case StatusPengaduan.selesai:
         return 'Berhasil';
       case StatusPengaduan.ditolak:

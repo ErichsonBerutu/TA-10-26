@@ -522,9 +522,9 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
           'Menunggu'
         ),
       model_pengaduan.StatusPengaduan.diproses => (
-          const Color(0xFF2563eb),
-          const Color(0xFFeff6ff),
-          'Terbaca'
+          const Color(0xFFb45309),
+          const Color(0xFFfef3c7),
+          'Menunggu'
         ),
       model_pengaduan.StatusPengaduan.selesai => (
           const Color(0xFF16a34a),

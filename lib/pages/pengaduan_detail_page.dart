@@ -77,7 +77,7 @@ class _PengaduanDetailPageState extends State<PengaduanDetailPage> {
       case StatusPengaduan.menunggu:
         return const Color(0xFFb45309);
       case StatusPengaduan.diproses:
-        return const Color(0xFF2563eb);
+        return const Color(0xFFb45309);
       case StatusPengaduan.selesai:
         return const Color(0xFF16a34a);
       case StatusPengaduan.ditolak:
@@ -90,7 +90,7 @@ class _PengaduanDetailPageState extends State<PengaduanDetailPage> {
       case StatusPengaduan.menunggu:
         return const Color(0xFFfef3c7);
       case StatusPengaduan.diproses:
-        return const Color(0xFFeff6ff);
+        return const Color(0xFFfef3c7);
       case StatusPengaduan.selesai:
         return const Color(0xFFf0fdf4);
       case StatusPengaduan.ditolak:

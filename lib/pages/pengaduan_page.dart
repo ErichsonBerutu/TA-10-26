@@ -160,7 +160,7 @@ class _PengaduanPageState extends State<PengaduanPage> {
       case StatusPengaduan.menunggu:
         return const Color(0xFFd97706);
       case StatusPengaduan.diproses:
-        return const Color(0xFF2563eb);
+        return const Color(0xFFd97706);
       case StatusPengaduan.selesai:
         return const Color(0xFF16a34a);
       case StatusPengaduan.ditolak:
