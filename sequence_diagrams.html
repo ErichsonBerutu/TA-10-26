@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sequence Diagram UML — Mobile Hutabulu Mejan</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 30px 15px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin-bottom: 6px;
+    }
+    
+    header p {
+      color: #64748b;
+      font-size: 14px;
+    }
+    
+    .note-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 25px;
+      font-size: 13.5px;
+      color: #1e40af;
+      line-height: 1.6;
+    }
+    
+    .note-box strong { color: #1e3a8a; }
+
+    /* Tab Navigation */
+    .tabs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: #e2e8f0;
+      padding: 6px;
+      border-radius: 12px;
+    }
+    
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .tab-btn.active {
+      background: #ffffff;
+      color: #1e40af;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Diagram Panel */
+    .diagram-panel {
+      display: none;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+    }
+    
+    .diagram-panel.active {
+      display: block;
+    }
+    
+    .diagram-header {
+      margin-bottom: 20px;
+    }
+    
+    .diagram-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 8px;
+    }
+    
+    .diagram-desc {
+      background: #f8fafc;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13.5px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .svg-container {
+      width: 100%;
+      overflow-x: auto;
+      background: #ffffff;
+      padding: 20px 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    svg {
+      background: #ffffff;
+      user-select: none;
+    }
+
+    /* Print utility */
+    .print-btn {
+      display: inline-block;
+      margin-top: 15px;
+      background: #1e40af;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: background 0.2s;
+    }
+    
+    .print-btn:hover {
+      background: #1d4ed8;
+    }
+
+    @media print {
+      body { padding: 0; background: white; }
+      .tabs-nav, .note-box, .print-btn, header { display: none !important; }
+      .diagram-panel { display: block !important; box-shadow: none; border: none; padding: 0; margin-bottom: 50px; page-break-after: always; }
+      .svg-container { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Sequence Diagram UML — Aplikasi Mobile</h1>
+      <p>Sistem Administrasi Desa Hutabulu Mejan (Gaya Robustness / Analisis UML Asli)</p>
+    </header>
+
+    <div class="note-box">
+      <strong>📌 Informasi Akun:</strong> Akun masyarakat (NIK &amp; Password) didaftarkan dan diberikan oleh <strong>Perangkat Desa</strong> melalui sistem web admin. Tidak ada fitur registrasi mandiri di aplikasi mobile demi keamanan data kependudukan.
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab(0)">1. Login</button>
+      <button class="tab-btn" onclick="switchTab(1)">2. Logout</button>
+      <button class="tab-btn" onclick="switchTab(2)">3. Pengajuan Surat</button>
+      <button class="tab-btn" onclick="switchTab(3)">4. Pengaduan</button>
+      <button class="tab-btn" onclick="switchTab(4)">5. Berita</button>
+      <button class="tab-btn" onclick="switchTab(5)">6. Pengumuman</button>
+      <button class="tab-btn" onclick="switchTab(6)">7. Notifikasi</button>
+      <button class="tab-btn" onclick="switchTab(7)">8. Download PDF</button>
+      <button class="tab-btn" onclick="switchTab(8)">9. Riwayat Layanan</button>
+      <button class="tab-btn" onclick="switchTab(9)">10. Lihat Profil</button>
+      <button class="tab-btn" onclick="switchTab(10)">11. Respons Admin</button>
+    </div>
+
+    <!-- 1. LOGIN -->
+    <div class="diagram-panel active">
+      <div class="diagram-header">
+        <h2>1. Sequence Diagram Login</h2>
+        <div class="diagram-desc">
+          Proses masuk masyarakat menggunakan NIK dan password dari perangkat desa. LoginPage memvalidasi format input (NIK harus 16 digit), lalu mengirim data ke AuthService untuk diverifikasi dengan server Laravel API.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="600" viewBox="0 0 960 600">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="590" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 120 5 L 110 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Login</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="570" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="280" y1="120" x2="280" y2="570" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="480" y1="120" x2="480" y2="570" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="680" y1="120" x2="680" y2="570" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="860" y1="120" x2="860" y2="570" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="430" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="275" y="145" width="10" height="420" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="475" y="235" width="10" height="305" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="675" y="265" width="10" height="255" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="855" y="360" width="10" height="40" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+
+          <!-- Boundary: Login View -->
+          <circle cx="280" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="262" y1="45" x2="262" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="262" y1="65" x2="280" y2="65" stroke="#000" stroke-width="2" />
+          <text x="280" y="100" text-anchor="middle" font-size="12" font-weight="bold">Login View</text>
+          <text x="280" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Login Controller -->
+          <circle cx="480" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 470 48 A 18 18 0 1 1 465 65 L 460 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="480" y="100" text-anchor="middle" font-size="12" font-weight="bold">Login Controller</text>
+          <text x="480" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="680" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="655" y1="83" x2="705" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="680" y1="83" x2="680" y2="75" stroke="#000" stroke-width="2" />
+          <text x="680" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="680" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Session Storage -->
+          <circle cx="860" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="835" y1="83" x2="885" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="860" y1="83" x2="860" y2="75" stroke="#000" stroke-width="2" />
+          <text x="860" y="100" text-anchor="middle" font-size="12" font-weight="bold">Session Storage</text>
+          <text x="860" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="275" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="190" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Input NIK &amp; Password</text>
+
+          <line x1="105" y1="185" x2="275" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="190" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Tekan Tombol Masuk</text>
+
+          <!-- Self trigger on Login View (Validasi) -->
+          <path d="M 285 200 C 315 200, 315 220, 285 220" fill="none" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="320" y="214" font-size="10" font-weight="500">1.3: Validasi Format NIK</text>
+
+          <line x1="285" y1="245" x2="475" y2="245" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="380" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Kirim Data Kredensial</text>
+
+          <line x1="485" y1="275" x2="675" y2="275" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="580" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: POST /api/login {nik, password}</text>
+
+          <!-- alt box -->
+          <rect x="30" y="300" width="900" height="260" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard success -->
+          <text x="45" y="332" font-family="sans-serif" font-size="11" font-weight="bold">[Kredensial Valid (HTTP 200)]</text>
+          
+          <line x1="675" y1="345" x2="485" y2="345" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="580" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6: Return Status &amp; Token</text>
+
+          <line x1="485" y1="370" x2="855" y2="370" stroke="#000" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="670" y="363" text-anchor="middle" font-size="11" font-weight="500">1.7: Simpan Token &amp; Profil User</text>
+
+          <line x1="855" y1="395" x2="485" y2="395" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="670" y="388" text-anchor="middle" font-size="11" font-weight="500">1.8: Konfirmasi Penyimpanan</text>
+
+          <line x1="475" y1="420" x2="285" y2="420" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="380" y="413" text-anchor="middle" font-size="11" font-weight="500">1.9: Login Berhasil</text>
+
+          <line x1="275" y1="445" x2="105" y2="445" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="190" y="438" text-anchor="middle" font-size="11" font-weight="500">1.10: Navigasi ke BerandaPage</text>
+
+          <!-- separator -->
+          <line x1="30" y1="465" x2="930" y2="465" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard error -->
+          <text x="45" y="485" font-family="sans-serif" font-size="11" font-weight="bold">[Kredensial Tidak Valid (HTTP 401/403)]</text>
+
+          <line x1="675" y1="505" x2="485" y2="505" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="580" y="498" text-anchor="middle" font-size="11" font-weight="500">1.6.1: Return Error Message</text>
+
+          <line x1="475" y1="530" x2="285" y2="530" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="380" y="523" text-anchor="middle" font-size="11" font-weight="500">1.7.1: Tampilkan Error SnackBar</text>
+
+          <line x1="275" y1="555" x2="105" y2="555" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow)" />
+          <text x="190" y="548" text-anchor="middle" font-size="11" font-weight="500">1.8.1: Menampilkan pesan error</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 2. LOGOUT -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>2. Sequence Diagram Logout</h2>
+        <div class="diagram-desc">
+          Proses keluar dari akun secara aman. Sistem menghapus token FCM dari Firebase Messaging, menghapus data login dan token kependudukan dari SharedPreferences lokal, serta mengirim notifikasi logout asinkron ke server Laravel API.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="460" viewBox="0 0 960 460">
+          <defs>
+            <marker id="arrow2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="450" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 120 5 L 110 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Logout</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="435" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="280" y1="120" x2="280" y2="435" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="480" y1="120" x2="480" y2="435" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="680" y1="120" x2="680" y2="435" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="860" y1="120" x2="860" y2="435" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="290" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="275" y="145" width="10" height="275" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="475" y="235" width="10" height="160" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="675" y="295" width="10" height="30" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="855" y="265" width="10" height="100" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Profile Page -->
+          <circle cx="280" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="262" y1="45" x2="262" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="262" y1="65" x2="280" y2="65" stroke="#000" stroke-width="2" />
+          <text x="280" y="100" text-anchor="middle" font-size="12" font-weight="bold">Profile Page</text>
+          <text x="280" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Auth Controller -->
+          <circle cx="480" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 470 48 A 18 18 0 1 1 465 65 L 460 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="480" y="100" text-anchor="middle" font-size="12" font-weight="bold">Auth Controller</text>
+          <text x="480" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="680" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="655" y1="83" x2="705" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="680" y1="83" x2="680" y2="75" stroke="#000" stroke-width="2" />
+          <text x="680" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="680" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Session Storage -->
+          <circle cx="860" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="835" y1="83" x2="885" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="860" y1="83" x2="860" y2="75" stroke="#000" stroke-width="2" />
+          <text x="860" y="100" text-anchor="middle" font-size="12" font-weight="bold">Session Storage</text>
+          <text x="860" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="275" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="190" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Tekan Keluar dari Akun</text>
+
+          <line x1="275" y1="185" x2="105" y2="185" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow2)" />
+          <text x="190" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Tampilkan Dialog Konfirmasi</text>
+
+          <line x1="105" y1="215" x2="275" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="190" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Konfirmasi Keluar</text>
+
+          <line x1="285" y1="245" x2="475" y2="245" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="380" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Panggil logout()</text>
+
+          <line x1="485" y1="275" x2="855" y2="275" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="670" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Hapus token FCM (Firebase)</text>
+
+          <line x1="485" y1="305" x2="675" y2="305" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="580" y="298" text-anchor="middle" font-size="11" font-weight="500">1.6: POST /api/logout (Async)</text>
+
+          <line x1="485" y1="340" x2="855" y2="340" stroke="#000" stroke-width="1.5" marker-end="url(#arrow2)" />
+          <text x="670" y="333" text-anchor="middle" font-size="11" font-weight="500">1.7: Hapus session &amp; data lokal</text>
+
+          <line x1="475" y1="370" x2="285" y2="370" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow2)" />
+          <text x="380" y="363" text-anchor="middle" font-size="11" font-weight="500">1.8: Logout Selesai</text>
+
+          <line x1="275" y1="400" x2="105" y2="400" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow2)" />
+          <text x="190" y="393" text-anchor="middle" font-size="11" font-weight="500">1.9: Navigasi ke Halaman Login</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 3. PENGAJUAN SURAT -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>3. Sequence Diagram Pengajuan Surat</h2>
+        <div class="diagram-desc">
+          Masyarakat memilih jenis surat, melihat persyaratan dinamis yang diambil dari database/API, mengisi formulir dengan data valid, dan mengirimkannya ke server. Jika offline, data otomatis dialihkan ke sync queue lokal.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="660" viewBox="0 0 960 660">
+          <defs>
+            <marker id="arrow3" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow3" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="650" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 180 5 L 170 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Pengajuan Surat</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="630" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="630" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="630" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="630" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="630" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="490" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="480" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="265" width="10" height="325" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="175" width="10" height="205" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="390" width="10" height="110" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Form Layanan Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Form Layanan Page</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Pengajuan Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengajuan Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Offline Database -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Offline Database</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Pilih Jenis Surat &amp; Buka Form</text>
+
+          <line x1="265" y1="185" x2="635" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="450" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: GET /api/dynamic/persyaratan/{id}</text>
+
+          <line x1="635" y1="215" x2="265" y2="215" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow3)" />
+          <text x="450" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Render Form Field Persyaratan</text>
+
+          <line x1="105" y1="245" x2="255" y2="245" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="180" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Isi Form &amp; Tekan Kirim</text>
+
+          <line x1="265" y1="275" x2="445" y2="275" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="355" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Panggil submitForm()</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="300" width="870" height="225" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Online -->
+          <text x="45" y="332" font-family="sans-serif" font-size="11" font-weight="bold">[Jika Online]</text>
+
+          <line x1="455" y1="345" x2="635" y2="345" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6a: POST Multipart Form</text>
+
+          <line x1="635" y1="375" x2="455" y2="375" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow3)" />
+          <text x="545" y="368" text-anchor="middle" font-size="11" font-weight="500">1.7a: Response 201 Created</text>
+
+          <line x1="455" y1="400" x2="825" y2="400" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="640" y="393" text-anchor="middle" font-size="11" font-weight="500">1.8a: Simpan Cache Lokal</text>
+
+          <!-- separator -->
+          <line x1="30" y1="420" x2="900" y2="420" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="440" font-family="sans-serif" font-size="11" font-weight="bold">[Jika Offline]</text>
+
+          <line x1="455" y1="465" x2="825" y2="465" stroke="#000" stroke-width="1.5" marker-end="url(#arrow3)" />
+          <text x="640" y="458" text-anchor="middle" font-size="11" font-weight="500">1.6b: Simpan ke Sync Queue</text>
+
+          <line x1="825" y1="495" x2="455" y2="495" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow3)" />
+          <text x="640" y="488" text-anchor="middle" font-size="11" font-weight="500">1.7b: Konfirmasi Penyimpanan Offline</text>
+
+          <!-- Out of alt -->
+          <line x1="445" y1="555" x2="265" y2="555" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow3)" />
+          <text x="355" y="548" text-anchor="middle" font-size="11" font-weight="500">1.9: Kirim Respons Berhasil</text>
+
+          <line x1="255" y1="585" x2="105" y2="585" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow3)" />
+          <text x="180" y="578" text-anchor="middle" font-size="11" font-weight="500">1.10: Tampilkan Dialog Sukses</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 4. PENGADUAN -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>4. Sequence Diagram Pengaduan Masyarakat</h2>
+        <div class="diagram-desc">
+          Masyarakat membuat laporan pengaduan berupa teks dan foto. PengaduanService menyimpan data offline jika koneksi internet terputus, dan mengirimkannya saat perangkat kembali online.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="610" viewBox="0 0 960 610">
+          <defs>
+            <marker id="arrow4" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow4" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="600" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 140 5 L 130 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Pengaduan</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="440" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="430" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="205" width="10" height="340" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="305" width="10" height="50" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="235" width="10" height="240" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Pengaduan Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengaduan View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Pengaduan Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengaduan Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Offline Database -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Offline Database</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Isi Form &amp; Lampirkan Foto</text>
+
+          <line x1="105" y1="185" x2="255" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="180" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Tekan Kirim Pengaduan</text>
+
+          <line x1="265" y1="215" x2="445" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="355" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Panggil kirimPengaduan()</text>
+
+          <line x1="455" y1="245" x2="825" y2="245" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="640" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Cache Pengaduan Baru Ke Lokal</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="270" width="870" height="225" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 270 L 70 270 L 65 285 L 30 285 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="281" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Online -->
+          <text x="45" y="302" font-family="sans-serif" font-size="11" font-weight="bold">[Jika Online]</text>
+
+          <line x1="455" y1="315" x2="635" y2="315" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="545" y="308" text-anchor="middle" font-size="11" font-weight="500">1.5a: POST /api/pengaduan</text>
+
+          <line x1="635" y1="345" x2="455" y2="345" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow4)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6a: Response Success</text>
+
+          <line x1="455" y1="370" x2="825" y2="370" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="640" y="363" text-anchor="middle" font-size="11" font-weight="500">1.7a: Update Cache Status Sukses</text>
+
+          <!-- separator -->
+          <line x1="30" y1="390" x2="900" y2="390" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="410" font-family="sans-serif" font-size="11" font-weight="bold">[Jika Offline]</text>
+
+          <line x1="455" y1="435" x2="825" y2="435" stroke="#000" stroke-width="1.5" marker-end="url(#arrow4)" />
+          <text x="640" y="428" text-anchor="middle" font-size="11" font-weight="500">1.5b: Tambah ke Sync Queue</text>
+
+          <line x1="825" y1="465" x2="455" y2="465" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow4)" />
+          <text x="640" y="458" text-anchor="middle" font-size="11" font-weight="500">1.6b: Konfirmasi Penyimpanan Offline</text>
+
+          <!-- Out of alt -->
+          <line x1="445" y1="525" x2="265" y2="525" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow4)" />
+          <text x="355" y="518" text-anchor="middle" font-size="11" font-weight="500">1.8: return true</text>
+
+          <line x1="255" y1="555" x2="105" y2="555" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow4)" />
+          <text x="180" y="548" text-anchor="middle" font-size="11" font-weight="500">1.9: Tampilkan Alert Berhasil</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 5. BERITA -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>5. Sequence Diagram Melihat Berita</h2>
+        <div class="diagram-desc">
+          Masyarakat membaca berita desa. Sistem memprioritaskan database lokal (local-first) agar berita dapat diakses offline secara instan, lalu menyegarkan data dari server di latar belakang.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="570" viewBox="0 0 960 570">
+          <defs>
+            <marker id="arrow5" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow5" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="560" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 160 5 L 150 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Melihat Berita</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="400" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="390" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="350" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="335" width="10" height="50" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="205" width="10" height="210" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Beranda Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Beranda View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Berita Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Berita Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Offline Database -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Offline Database</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow5)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Akses Halaman Beranda</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow5)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Panggil muatBerita()</text>
+
+          <line x1="455" y1="215" x2="825" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow5)" />
+          <text x="640" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Ambil berita dari cache lokal</text>
+
+          <line x1="825" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow5)" />
+          <text x="640" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Tampilkan data berita cache</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow5)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Render Berita Awal</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="300" width="870" height="205" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Update Server -->
+          <text x="45" y="327" font-family="sans-serif" font-size="11" font-weight="bold">[Perlu Update dari Server (Online)]</text>
+
+          <line x1="455" y1="345" x2="635" y2="345" stroke="#000" stroke-width="1.5" marker-end="url(#arrow5)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6: GET /api/berita</text>
+
+          <line x1="635" y1="375" x2="455" y2="375" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow5)" />
+          <text x="545" y="368" text-anchor="middle" font-size="11" font-weight="500">1.7: List berita terbaru</text>
+
+          <line x1="455" y1="400" x2="825" y2="400" stroke="#000" stroke-width="1.5" marker-end="url(#arrow5)" />
+          <text x="640" y="393" text-anchor="middle" font-size="11" font-weight="500">1.8: Simpan berita ke cache</text>
+
+          <line x1="445" y1="425" x2="255" y2="425" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow5)" />
+          <text x="350" y="418" text-anchor="middle" font-size="11" font-weight="500">1.9: Update UI Berita terbaru</text>
+
+          <!-- separator -->
+          <line x1="30" y1="445" x2="900" y2="445" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="465" font-family="sans-serif" font-size="11" font-weight="bold">[Koneksi Offline]</text>
+
+          <line x1="445" y1="485" x2="255" y2="485" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow5)" />
+          <text x="350" y="478" text-anchor="middle" font-size="11" font-weight="500">1.6.1: Tampilkan data cache saja</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 6. PENGUMUMAN -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>6. Sequence Diagram Melihat Pengumuman</h2>
+        <div class="diagram-desc">
+          Proses pemuatan daftar pengumuman desa. Aplikasi menggunakan database cache SharedPreferences agar pengumuman langsung termuat, kemudian melakukan request data terbaru ke server secara asinkron.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="570" viewBox="0 0 960 570">
+          <defs>
+            <marker id="arrow6" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow6" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="560" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 200 5 L 190 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Melihat Pengumuman</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="400" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="390" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="350" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="335" width="10" height="50" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="205" width="10" height="210" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Pengumuman Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengumuman View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Pengumuman Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengumuman Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Offline Database -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Offline Database</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow6)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Akses Halaman Pengumuman</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow6)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Panggil muatPengumuman()</text>
+
+          <line x1="455" y1="215" x2="825" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow6)" />
+          <text x="640" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Ambil data cache lokal</text>
+
+          <line x1="825" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow6)" />
+          <text x="640" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Tampilkan data pengumuman cache</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow6)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Render Pengumuman Awal</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="300" width="870" height="205" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Update Server -->
+          <text x="45" y="327" font-family="sans-serif" font-size="11" font-weight="bold">[Perlu Update dari Server (Online)]</text>
+
+          <line x1="455" y1="345" x2="635" y2="345" stroke="#000" stroke-width="1.5" marker-end="url(#arrow6)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6: GET /api/pengumuman</text>
+
+          <line x1="635" y1="375" x2="455" y2="375" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow6)" />
+          <text x="545" y="368" text-anchor="middle" font-size="11" font-weight="500">1.7: List data pengumuman terbaru</text>
+
+          <line x1="455" y1="400" x2="825" y2="400" stroke="#000" stroke-width="1.5" marker-end="url(#arrow6)" />
+          <text x="640" y="393" text-anchor="middle" font-size="11" font-weight="500">1.8: Simpan pengumuman ke cache</text>
+
+          <line x1="445" y1="425" x2="255" y2="425" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow6)" />
+          <text x="350" y="418" text-anchor="middle" font-size="11" font-weight="500">1.9: Update UI Pengumuman terbaru</text>
+
+          <!-- separator -->
+          <line x1="30" y1="445" x2="900" y2="445" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="465" font-family="sans-serif" font-size="11" font-weight="bold">[Koneksi Offline]</text>
+
+          <line x1="445" y1="485" x2="255" y2="485" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow6)" />
+          <text x="350" y="478" text-anchor="middle" font-size="11" font-weight="500">1.6.1: Tampilkan data cache saja</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 7. NOTIFIKASI -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>7. Sequence Diagram Notifikasi</h2>
+        <div class="diagram-desc">
+          Sistem notifikasi real-time berbasis Firebase Cloud Messaging (FCM). FCM Token dikirim ke server saat login, dan NotifikasiService melakukan polling periodik serta menandai status baca notifikasi.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="610" viewBox="0 0 960 610">
+          <defs>
+            <marker id="arrow7" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow7" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="600" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 140 5 L 130 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Notifikasi</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="580" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="240" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="415" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="375" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="205" width="10" height="325" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="430" width="10" height="25" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Notifikasi Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Notifikasi Page</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Fcm Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Fcm Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Firebase Service -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Firebase Service</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Buka Halaman Notifikasi</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Panggil loadNotifikasi()</text>
+
+          <line x1="455" y1="215" x2="635" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="545" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: GET /api/notifikasi</text>
+
+          <line x1="635" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow7)" />
+          <text x="545" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Return list notifikasi</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow7)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Tampilkan Daftar Notifikasi</text>
+
+          <line x1="105" y1="305" x2="255" y2="305" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="180" y="298" text-anchor="middle" font-size="11" font-weight="500">1.6: Tap Notifikasi (Tandai Dibaca)</text>
+
+          <line x1="265" y1="335" x2="445" y2="335" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="355" y="328" text-anchor="middle" font-size="11" font-weight="500">1.7: Panggil tandaiDibaca(id)</text>
+
+          <line x1="455" y1="365" x2="635" y2="365" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="545" y="358" text-anchor="middle" font-size="11" font-weight="500">1.8: PATCH /api/notifikasi/{id}/read</text>
+
+          <!-- opt Box -->
+          <rect x="30" y="390" width="870" height="155" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 390 L 70 390 L 65 405 L 30 405 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="401" font-family="sans-serif" font-size="10" font-weight="bold">opt</text>
+
+          <!-- Guard FCM -->
+          <text x="45" y="422" font-family="sans-serif" font-size="11" font-weight="bold">[FCM Foreground Message Received]</text>
+
+          <line x1="825" y1="440" x2="455" y2="440" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="640" y="433" text-anchor="middle" font-size="11" font-weight="500">1.9: RemoteMessage masuk</text>
+
+          <line x1="445" y1="470" x2="255" y2="470" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow7)" />
+          <text x="350" y="463" text-anchor="middle" font-size="11" font-weight="500">1.10: Tampilkan local notification banner</text>
+
+          <line x1="455" y1="500" x2="635" y2="500" stroke="#000" stroke-width="1.5" marker-end="url(#arrow7)" />
+          <text x="545" y="493" text-anchor="middle" font-size="11" font-weight="500">1.11: Refresh daftar notifikasi</text>
+
+          <line x1="445" y1="530" x2="255" y2="530" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow7)" />
+          <text x="350" y="523" text-anchor="middle" font-size="11" font-weight="500">1.12: Update UI Notifikasi</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 8. DOWNLOAD PDF -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>8. Sequence Diagram Download PDF Surat</h2>
+        <div class="diagram-desc">
+          Masyarakat dapat mengunduh surat resmi yang telah disetujui perangkat desa. Surat diunduh langsung dari server desa dalam format PDF lalu dicetak/disimpan ke memori internal menggunakan Printing Plugin.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="650" viewBox="0 0 960 650">
+          <defs>
+            <marker id="arrow8" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow8" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="640" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 160 5 L 150 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Download PDF</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="620" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="620" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="620" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="620" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="620" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="480" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="465" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="205" width="10" height="375" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="275" width="10" height="45" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="485" width="10" height="60" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Detail Pengajuan Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Detail Pengajuan View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Pdf Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pdf Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Printing Plugin -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Printing Plugin</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Buka detail (Status Disetujui)</text>
+
+          <line x1="105" y1="185" x2="255" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="180" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Tekan Download Surat</text>
+
+          <line x1="265" y1="215" x2="445" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="355" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: downloadOfficialPdfFromServer()</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="235" width="870" height="230" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 235 L 70 235 L 65 250 L 30 250 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="246" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Online Server -->
+          <text x="45" y="267" font-family="sans-serif" font-size="11" font-weight="bold">[File PDF Tersedia di Server]</text>
+
+          <line x1="455" y1="280" x2="635" y2="280" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="545" y="273" text-anchor="middle" font-size="11" font-weight="500">1.4a: GET /api/surat/{id}/download</text>
+
+          <line x1="635" y1="310" x2="455" y2="310" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow8)" />
+          <text x="545" y="303" text-anchor="middle" font-size="11" font-weight="500">1.5a: return PDF Bytes</text>
+
+          <!-- separator -->
+          <line x1="30" y1="330" x2="900" y2="330" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Local Generate -->
+          <text x="45" y="350" font-family="sans-serif" font-size="11" font-weight="bold">[File PDF Tidak Tersedia (Generate Lokal)]</text>
+
+          <path d="M 455 370 C 485 370, 485 385, 455 385" fill="none" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="490" y="380" font-size="10" font-weight="500">1.4b: generatePdf(pengajuan)</text>
+
+          <path d="M 455 400 C 485 400, 485 415, 455 415" fill="none" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="490" y="410" font-size="10" font-weight="500">1.5b: Load assets logo &amp; fonts</text>
+
+          <path d="M 455 430 C 485 430, 485 445, 455 445" fill="none" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="490" y="440" font-size="10" font-weight="500">1.6b: return PDF Bytes Lokal</text>
+
+          <!-- Out of alt -->
+          <line x1="455" y1="495" x2="825" y2="495" stroke="#000" stroke-width="1.5" marker-end="url(#arrow8)" />
+          <text x="640" y="488" text-anchor="middle" font-size="11" font-weight="500">1.7: Tampilkan Print Preview Dialog</text>
+
+          <line x1="825" y1="525" x2="455" y2="525" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow8)" />
+          <text x="640" y="518" text-anchor="middle" font-size="11" font-weight="500">1.8: Layout PDF Sukses</text>
+
+          <line x1="455" y1="555" x2="255" y2="555" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow8)" />
+          <text x="350" y="548" text-anchor="middle" font-size="11" font-weight="500">1.9: File PDF Tersimpan / Dicetak</text>
+
+          <line x1="255" y1="585" x2="105" y2="585" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow8)" />
+          <text x="180" y="578" text-anchor="middle" font-size="11" font-weight="500">1.10: Konfirmasi Penyimpanan</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 9. RIWAYAT LAYANAN -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>9. Sequence Diagram Riwayat Layanan</h2>
+        <div class="diagram-desc">
+          Masyarakat memantau riwayat pengajuan surat. PengajuanService memadukan data dari sync queue (proses offline) diletakkan paling atas, lalu digabung dengan data cache lokal dan data server API.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="570" viewBox="0 0 960 570">
+          <defs>
+            <marker id="arrow9" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow9" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="560" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 180 5 L 170 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Riwayat Layanan</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="400" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="390" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="350" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="335" width="10" height="50" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="205" width="10" height="210" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Riwayat View -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Riwayat View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Pengajuan Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Pengajuan Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Offline Database -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Offline Database</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow9)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Akses Halaman Riwayat</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow9)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Panggil muatDaftarPengajuan()</text>
+
+          <line x1="455" y1="215" x2="825" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow9)" />
+          <text x="640" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Get cache &amp; offline queue</text>
+
+          <line x1="825" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow9)" />
+          <text x="640" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Return data cache &amp; pending</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow9)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Tampilkan data awal</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="300" width="870" height="205" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Online -->
+          <text x="45" y="327" font-family="sans-serif" font-size="11" font-weight="bold">[Jaringan Online]</text>
+
+          <line x1="455" y1="345" x2="635" y2="345" stroke="#000" stroke-width="1.5" marker-end="url(#arrow9)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6: GET /api/surat</text>
+
+          <line x1="635" y1="375" x2="455" y2="375" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow9)" />
+          <text x="545" y="368" text-anchor="middle" font-size="11" font-weight="500">1.7: Return list pengajuan terbaru</text>
+
+          <line x1="455" y1="400" x2="825" y2="400" stroke="#000" stroke-width="1.5" marker-end="url(#arrow9)" />
+          <text x="640" y="393" text-anchor="middle" font-size="11" font-weight="500">1.8: Update cache lokal</text>
+
+          <line x1="445" y1="425" x2="255" y2="425" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow9)" />
+          <text x="350" y="418" text-anchor="middle" font-size="11" font-weight="500">1.9: Tampilkan data riwayat lengkap</text>
+
+          <!-- separator -->
+          <line x1="30" y1="445" x2="900" y2="445" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="465" font-family="sans-serif" font-size="11" font-weight="bold">[Jaringan Offline]</text>
+
+          <line x1="445" y1="485" x2="255" y2="485" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow9)" />
+          <text x="350" y="478" text-anchor="middle" font-size="11" font-weight="500">1.6.1: Tampilkan data offline cache</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 10. LIHAT PROFIL -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>10. Sequence Diagram Lihat Profil</h2>
+        <div class="diagram-desc">
+          Melihat profil terdaftar. Profil lokal termuat terlebih dahulu, kemudian AuthService menyegarkan data profil terbaru (seperti nama, alamat, status nikah, dll.) dari server secara background.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="570" viewBox="0 0 960 570">
+          <defs>
+            <marker id="arrow10" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow10" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="560" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 140 5 L 130 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Lihat Profil</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="830" y1="120" x2="830" y2="540" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="400" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="390" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="350" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="335" width="10" height="50" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="825" y="205" width="10" height="210" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Profil Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Profil View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Auth Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Auth Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Entity: Session Storage -->
+          <circle cx="830" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="805" y1="83" x2="855" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="830" y1="83" x2="830" y2="75" stroke="#000" stroke-width="2" />
+          <text x="830" y="100" text-anchor="middle" font-size="12" font-weight="bold">Session Storage</text>
+          <text x="830" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow10)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Akses Halaman Profil</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow10)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Minta profil user lokal</text>
+
+          <line x1="455" y1="215" x2="825" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow10)" />
+          <text x="640" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: Get data user lokal</text>
+
+          <line x1="825" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow10)" />
+          <text x="640" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Tampilkan data profil lokal</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow10)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Tampilkan data profil lokal</text>
+
+          <!-- alt Box -->
+          <rect x="30" y="300" width="870" height="205" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 30 300 L 70 300 L 65 315 L 30 315 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="36" y="311" font-family="sans-serif" font-size="10" font-weight="bold">alt</text>
+
+          <!-- Guard Online -->
+          <text x="45" y="327" font-family="sans-serif" font-size="11" font-weight="bold">[Jaringan Online]</text>
+
+          <line x1="455" y1="345" x2="635" y2="345" stroke="#000" stroke-width="1.5" marker-end="url(#arrow10)" />
+          <text x="545" y="338" text-anchor="middle" font-size="11" font-weight="500">1.6: GET /api/me (fetchLatestProfile)</text>
+
+          <line x1="635" y1="375" x2="455" y2="375" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow10)" />
+          <text x="545" y="368" text-anchor="middle" font-size="11" font-weight="500">1.7: Return data profil terbaru</text>
+
+          <line x1="455" y1="400" x2="825" y2="400" stroke="#000" stroke-width="1.5" marker-end="url(#arrow10)" />
+          <text x="640" y="393" text-anchor="middle" font-size="11" font-weight="500">1.8: Simpan profil baru ke storage</text>
+
+          <line x1="445" y1="425" x2="255" y2="425" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow10)" />
+          <text x="350" y="418" text-anchor="middle" font-size="11" font-weight="500">1.9: Refresh UI Profil</text>
+
+          <!-- separator -->
+          <line x1="30" y1="445" x2="900" y2="445" stroke="#000" stroke-dasharray="4,4" stroke-width="1" />
+
+          <!-- Guard Offline -->
+          <text x="45" y="465" font-family="sans-serif" font-size="11" font-weight="bold">[Jaringan Offline]</text>
+
+          <line x1="445" y1="485" x2="255" y2="485" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow10)" />
+          <text x="350" y="478" text-anchor="middle" font-size="11" font-weight="500">1.6.1: Gunakan data profil lokal</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 11. RESPONS ADMIN -->
+    <div class="diagram-panel">
+      <div class="diagram-header">
+        <h2>11. Sequence Diagram Respons Admin</h2>
+        <div class="diagram-desc">
+          Masyarakat berkomunikasi dengan admin/perangkat desa terkait status pengajuan atau pengaduan secara dua arah. Pesan balasan dikirim langsung ke server Laravel, dan riwayat pesan di-cache secara lokal.
+        </div>
+      </div>
+      <div class="svg-container">
+        <svg width="960" height="490" viewBox="0 0 960 490">
+          <defs>
+            <marker id="arrow11" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+            </marker>
+            <marker id="return-arrow11" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 2 2 L 10 5 L 2 8" fill="none" stroke="#000" stroke-width="1.5" />
+            </marker>
+          </defs>
+
+          <!-- Outer Frame -->
+          <rect x="5" y="5" width="950" height="480" fill="none" stroke="#000" stroke-width="1.5" />
+          <path d="M 5 5 L 150 5 L 140 25 L 5 25 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" />
+          <text x="15" y="19" font-family="sans-serif" font-size="11" font-weight="bold">sd Respons Admin</text>
+
+          <!-- Lifelines -->
+          <line x1="100" y1="120" x2="100" y2="460" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="260" y1="120" x2="260" y2="460" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="450" y1="120" x2="450" y2="460" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+          <line x1="640" y1="120" x2="640" y2="460" stroke="#000" stroke-dasharray="6,6" stroke-width="1.5" />
+
+          <!-- Lifeline Activations -->
+          <rect x="95" y="140" width="10" height="315" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="255" y="145" width="10" height="305" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="445" y="175" width="10" height="265" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+          <rect x="635" y="205" width="10" height="195" fill="#7dd3fc" stroke="#000" stroke-width="1" />
+
+          <!-- Actor: Masyarakat -->
+          <circle cx="100" cy="50" r="14" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="64" x2="100" y2="95" stroke="#000" stroke-width="2" />
+          <line x1="80" y1="75" x2="120" y2="75" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="85" y2="115" stroke="#000" stroke-width="2" />
+          <line x1="100" y1="95" x2="115" y2="115" stroke="#000" stroke-width="2" />
+          <text x="100" y="130" text-anchor="middle" font-size="12" font-weight="bold">Masyarakat</text>
+          
+          <!-- Boundary: Detail Objek Page -->
+          <circle cx="260" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="45" x2="242" y2="85" stroke="#000" stroke-width="2" />
+          <line x1="242" y1="65" x2="260" y2="65" stroke="#000" stroke-width="2" />
+          <text x="260" y="100" text-anchor="middle" font-size="12" font-weight="bold">Detail Objek View</text>
+          <text x="260" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Boundary)</text>
+
+          <!-- Control: Respons Controller -->
+          <circle cx="450" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <path d="M 440 48 A 18 18 0 1 1 435 65 L 430 55" fill="none" stroke="#000" stroke-width="2" />
+          <text x="450" y="100" text-anchor="middle" font-size="12" font-weight="bold">Respons Controller</text>
+          <text x="450" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Control)</text>
+
+          <!-- Entity: Laravel API -->
+          <circle cx="640" cy="65" r="18" fill="#7dd3fc" stroke="#000" stroke-width="2" />
+          <line x1="615" y1="83" x2="665" y2="83" stroke="#000" stroke-width="2" />
+          <line x1="640" y1="83" x2="640" y2="75" stroke="#000" stroke-width="2" />
+          <text x="640" y="100" text-anchor="middle" font-size="12" font-weight="bold">Laravel API</text>
+          <text x="640" y="115" text-anchor="middle" font-size="10" fill="#64748b">(Entity)</text>
+
+          <!-- Messages -->
+          <line x1="105" y1="155" x2="255" y2="155" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="180" y="148" text-anchor="middle" font-size="11" font-weight="500">1. Buka halaman detail item</text>
+
+          <line x1="265" y1="185" x2="445" y2="185" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="355" y="178" text-anchor="middle" font-size="11" font-weight="500">1.2: Panggil muatRespons()</text>
+
+          <line x1="455" y1="215" x2="635" y2="215" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="545" y="208" text-anchor="middle" font-size="11" font-weight="500">1.3: GET /api/respons/{tipe}/{id}</text>
+
+          <line x1="635" y1="245" x2="455" y2="245" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow11)" />
+          <text x="545" y="238" text-anchor="middle" font-size="11" font-weight="500">1.4: Return thread pesan respons</text>
+
+          <line x1="445" y1="275" x2="255" y2="275" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow11)" />
+          <text x="350" y="268" text-anchor="middle" font-size="11" font-weight="500">1.5: Render chat thread respons</text>
+
+          <line x1="105" y1="310" x2="255" y2="310" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="180" y="303" text-anchor="middle" font-size="11" font-weight="500">1.6: Balas pesan &amp; klik Kirim</text>
+
+          <line x1="265" y1="340" x2="445" y2="340" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="355" y="333" text-anchor="middle" font-size="11" font-weight="500">1.7: Panggil kirimRespons()</text>
+
+          <line x1="455" y1="370" x2="635" y2="370" stroke="#000" stroke-width="1.5" marker-end="url(#arrow11)" />
+          <text x="545" y="363" text-anchor="middle" font-size="11" font-weight="500">1.8: POST /api/respons/{tipe}</text>
+
+          <line x1="635" y1="400" x2="455" y2="400" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow11)" />
+          <text x="545" y="393" text-anchor="middle" font-size="11" font-weight="500">1.9: Return respons baru</text>
+
+          <line x1="445" y1="430" x2="255" y2="430" stroke="#000" stroke-dasharray="4,4" stroke-width="1.5" marker-end="url(#return-arrow11)" />
+          <text x="350" y="423" text-anchor="middle" font-size="11" font-weight="500">1.10: Update thread chat</text>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function switchTab(index) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const panels = document.querySelectorAll('.diagram-panel');
+      
+      tabs.forEach(tab => tab.classList.remove('active'));
+      panels.forEach(panel => panel.classList.remove('active'));
+      
+      tabs[index].classList.add('active');
+      panels[index].classList.add('active');
+    }
+  </script>
+</body>
+</html>

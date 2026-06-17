@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/pengajuan_model.dart';
 import '../services/pdf_service.dart';
-import '../services/auth_service.dart';
-import '../api_config/api_config.dart';
 
 
 // ============================================================
@@ -429,56 +426,7 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
-        // Tombol Buka Versi Resmi Server (Online)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () async {
-              try {
-                final token = AuthService().token;
-                if (token == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sesi login tidak valid. Silakan login kembali.')),
-                  );
-                  return;
-                }
-
-                final rawUrl = "${ApiConfig.baseUrl}/surat/${widget.pengajuan.id}/view?token=$token";
-                final uri = Uri.parse(rawUrl);
-
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tidak dapat membuka tautan: $rawUrl')),
-                  );
-                }
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Gagal membuka dokumen online: $e')),
-                );
-              }
-            },
-            icon: const Icon(Icons.open_in_browser_rounded, size: 18),
-            label: const Text(
-              'Buka Versi Resmi Server (Online)',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1e3a8a),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        // Tombol Simpan / Cetak PDF — Mengunduh PDF RESMI dari server
+        // Tombol Unduh Surat — Mengunduh PDF RESMI dari server
         // PDF yang dihasilkan IDENTIK dengan PDF di web/admin
         SizedBox(
           width: double.infinity,
@@ -526,9 +474,9 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                : const Icon(Icons.file_download_rounded, size: 18),
             label: Text(
-              _isDownloading ? 'Mengunduh PDF...' : 'Simpan / Cetak PDF',
+              _isDownloading ? 'Mengunduh Surat...' : 'Unduh Surat',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             style: ElevatedButton.styleFrom(
