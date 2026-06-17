@@ -7,13 +7,15 @@
 //   pdf: ^3.10.8
 //   printing: ^5.12.0
 
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/material.dart' show BuildContext, debugPrint;
+import 'package:flutter/material.dart' show BuildContext, debugPrint, ScaffoldMessenger, Colors, SnackBar, Text, Color;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import '../api_config/api_config.dart';
 import './auth_service.dart';
 import '../models/pengajuan_model.dart';
@@ -473,11 +475,42 @@ class PdfService {
 
       if (response.statusCode == 200) {
         final bytes = response.bodyBytes;
-        await Printing.layoutPdf(
-          onLayout: (_) async => bytes,
-          name: filename,
-          format: PdfPageFormat.a4,
+        
+        final outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Pilih lokasi untuk menyimpan surat',
+          fileName: filename,
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+          bytes: bytes,
         );
+
+        if (outputPath != null) {
+          try {
+            final file = File(outputPath);
+            await file.writeAsBytes(bytes);
+          } catch (e) {
+            debugPrint("Direct file write failed: $e. Handled by file_picker.");
+          }
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Surat berhasil diunduh dan disimpan!'),
+                backgroundColor: Color(0xFF16a34a),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Unduh surat dibatalkan.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
       } else {
         debugPrint("downloadOfficialPdfFromServer error: ${response.statusCode} - ${response.body}");
         throw Exception("Gagal mengunduh file resmi dari server.");
