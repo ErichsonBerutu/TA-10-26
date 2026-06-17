@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../models/persyaratan_model.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
 import '../services/offline_database_service.dart';
+import '../services/sync_service.dart';
 
 class FormPengajuanSuratPage extends StatefulWidget {
   final int jenisSuratId;
@@ -106,6 +107,20 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   Future<void> _checkAndAutoFillNik(String nik, String nikFieldId) async {
     if (nik.length != 16) return;
     if (_isCheckingNik) return;
+
+    final isOnline = await SyncService().checkInternet();
+    if (!isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Koneksi offline: NIK di luar anggota keluarga tidak dapat diverifikasi secara otomatis.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() {
       _isCheckingNik = true;
@@ -293,6 +308,15 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     final token = AuthService().token;
     if (token == null) return;
 
+    // 1. Ambil data dari cache lokal terlebih dahulu (Local-First Read)
+    final localKk = await OfflineDatabaseService().ambilMyKk();
+    if (localKk.isNotEmpty && mounted) {
+      setState(() {
+        _familyMembers = localKk;
+        _isLoadingFamily = false;
+      });
+    }
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/my-kk');
       final response = await http.get(
@@ -307,9 +331,14 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         final body = jsonDecode(response.body);
         if (body['status'] == 'success' && body['data'] != null && body['data']['anggota'] != null) {
           final List rawList = body['data']['anggota'];
+          final List<Map<String, dynamic>> memberList = List<Map<String, dynamic>>.from(rawList);
+          
+          // 2. Simpan data terbaru ke cache
+          await OfflineDatabaseService().simpanMyKk(memberList);
+          
           if (mounted) {
             setState(() {
-              _familyMembers = List<Map<String, dynamic>>.from(rawList);
+              _familyMembers = memberList;
               _isLoadingFamily = false;
             });
           }
@@ -906,6 +935,51 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     }
 
     setState(() => _isSubmitting = true);
+
+    final isOnline = await SyncService().checkInternet();
+    if (!isOnline) {
+      if (widget.isEditMode) {
+        setState(() => _isSubmitting = false);
+        _showErrorDialog('Gagal memperbarui pengajuan. Anda sedang offline.');
+        return;
+      }
+
+      debugPrint('Koneksi offline dideteksi saat submit, langsung simpan ke antrean offline.');
+      
+      final Map<String, String> localFormData = {};
+      for (final syarat in _persyaratan) {
+        final key = syarat.id.toString();
+        final val = _answers[key];
+        if (val is XFile) {
+          localFormData[syarat.namaField] = '[Unggahan Foto] ${val.name}';
+        } else if (val != null) {
+          localFormData[syarat.namaField] = val.toString();
+        }
+      }
+
+      final Map<String, dynamic> serializableAnswers = {};
+      _answers.forEach((key, value) {
+        if (value is XFile) {
+          serializableAnswers[key] = '[FILE_PATH]${value.path}';
+        } else {
+          serializableAnswers[key] = value;
+        }
+      });
+
+      await pengajuan_service.PengajuanService().tambahPengajuanOffline(
+        jenisSuratId: widget.jenisSuratId.toString(),
+        jenisSuratNama: widget.namaSurat,
+        emoji: _getEmojiForSurat(widget.namaSurat),
+        answers: serializableAnswers,
+        localFormData: localFormData,
+      );
+
+      await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
+
+      setState(() => _isSubmitting = false);
+      _showSuccessDialog();
+      return;
+    }
 
     try {
       // Tentukan URL: jika edit mode, gunakan endpoint update

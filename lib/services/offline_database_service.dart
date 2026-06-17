@@ -17,6 +17,28 @@ class OfflineDatabaseService {
   static const String _keyNotifikasi = 'cache_notifikasi';
   static const String _keyJenisSurat = 'cache_jenis_surat';
   static const String _keySyncQueue = 'sync_queue';
+  static const String _keyMyKk = 'cache_my_kk';
+
+  // ============================================================
+  //  CACHE MY KK (FAMILY MEMBERS)
+  // ============================================================
+
+  Future<void> simpanMyKk(List<Map<String, dynamic>> list) async {
+    final jsonString = jsonEncode(list);
+    await _saveString(_keyMyKk, jsonString);
+  }
+
+  Future<List<Map<String, dynamic>>> ambilMyKk() async {
+    final jsonString = await _getString(_keyMyKk);
+    if (jsonString == null || jsonString.isEmpty) return [];
+    try {
+      final List decoded = jsonDecode(jsonString);
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('ERROR OfflineDatabaseService.ambilMyKk: $e');
+      return [];
+    }
+  }
 
   // ============================================================
   //  METODE SECARA UMUM (GENERIC SETTERS AND GETTERS)
@@ -277,6 +299,7 @@ class OfflineDatabaseService {
       await prefs.remove(_keyPengajuan);
       await prefs.remove(_keyNotifikasi);
       await prefs.remove(_keyJenisSurat);
+      await prefs.remove(_keyMyKk);
       // Catatan: sync_queue jangan dibersihkan agar antrean offline yang belum sinkron tidak hilang
     } catch (e) {
       debugPrint('ERROR OfflineDatabaseService.bersihkanSemuaCache: $e');
