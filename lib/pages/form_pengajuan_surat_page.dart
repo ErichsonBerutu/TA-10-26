@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
@@ -260,6 +261,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
               }
             }
           }
+          setState(() {});
           _saveDraft();
         }
       } else if (response.statusCode == 404) {
@@ -325,8 +327,169 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     }
   }
 
-  void _autoFillFromFamilyData(String nik, String nikFieldId) {
-    final member = _familyMembers.firstWhere((m) => m['nik'] == nik, orElse: () => {});
+  bool _isNamaField(String label) {
+    final lower = label.toLowerCase().trim();
+    return lower == 'nama' ||
+        lower == 'nama lengkap' ||
+        lower == 'nama_lengkap' ||
+        lower.contains('nama pemohon') ||
+        lower.contains('nama lengkap pemohon');
+  }
+
+  bool _isChangingData = false;
+
+  Future<void> _onNameChanged(String val, String nameFieldId) async {
+    if (_isChangingData) return;
+    setState(() {
+      _isChangingData = true;
+    });
+
+    // Tampilkan Loading Dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563eb)),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Memuat Data...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Color(0xFF1e293b),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Mengubah data orang yang dituju',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748b),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // Delay 600ms untuk efek transisi loading yang profesional
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (mounted) {
+      Navigator.pop(context); // Tutup dialog
+      setState(() {
+        _controllers[nameFieldId]?.text = val;
+        _isChangingData = false;
+      });
+      _autoFillFromFamilyDataByName(val, nameFieldId);
+    }
+  }
+
+  Future<void> _onNikChanged(String val, String nikFieldId) async {
+    final isFamilyMember = _familyMembers.any((m) => m['nik'] == val);
+    if (isFamilyMember) {
+      if (_isChangingData) return;
+      setState(() {
+        _isChangingData = true;
+      });
+
+      // Tampilkan Loading Dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563eb)),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Memuat Data...',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Color(0xFF1e293b),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Mengubah data orang yang dituju',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748b),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      // Delay 600ms untuk efek transisi loading yang profesional
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      if (mounted) {
+        Navigator.pop(context); // Tutup dialog
+        setState(() {
+          _isChangingData = false;
+        });
+        final member = _familyMembers.firstWhere((m) => m['nik'] == val);
+        _autoFillFromFamilyDataByName(member['nama_lengkap'] ?? '', nikFieldId);
+      }
+    } else {
+      _checkAndAutoFillNik(val, nikFieldId);
+    }
+  }
+
+  void _autoFillFromFamilyDataByName(String nama, String namaFieldId) {
+    final member = _familyMembers.firstWhere(
+      (m) => (m['nama_lengkap'] ?? '').toString().trim().toLowerCase() == nama.trim().toLowerCase(),
+      orElse: () => {},
+    );
     if (member.isEmpty) return;
 
     final namaLengkap = member['nama_lengkap'] ?? '';
@@ -346,9 +509,13 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
       final keyStr = model.id.toString();
       final fieldLabel = model.namaField.toLowerCase().trim();
 
-      if (keyStr == nikFieldId) continue;
+      if (keyStr == namaFieldId) continue;
 
-      if (fieldLabel == 'nama' || fieldLabel == 'nama lengkap' || fieldLabel.contains('nama pemohon') || fieldLabel.contains('nama lengkap pemohon')) {
+      if (_isNikField(model.namaField)) {
+        if (member['nik'] != null && _controllers[keyStr] != null) {
+          _controllers[keyStr]!.text = member['nik'];
+        }
+      } else if (fieldLabel == 'nama' || fieldLabel == 'nama lengkap' || fieldLabel.contains('nama pemohon') || fieldLabel.contains('nama lengkap pemohon')) {
         if (member['nama_lengkap'] != null && _controllers[keyStr] != null) {
           _controllers[keyStr]!.text = member['nama_lengkap'];
         }
@@ -404,6 +571,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         }
       }
     }
+    setState(() {});
     _saveDraft();
   }
 
@@ -462,12 +630,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           controller.addListener(() {
             final text = controller.text.trim();
             if (text.length == 16) {
-              final isFamilyMember = _familyMembers.any((m) => m['nik'] == text);
-              if (isFamilyMember) {
-                _autoFillFromFamilyData(text, keyStr);
-              } else {
-                _checkAndAutoFillNik(text, keyStr);
-              }
+              _onNikChanged(text, keyStr);
             }
           });
 
@@ -475,9 +638,23 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               final isFamilyMember = _familyMembers.any((m) => m['nik'] == initialVal);
               if (isFamilyMember) {
-                _autoFillFromFamilyData(initialVal, keyStr);
+                final member = _familyMembers.firstWhere((m) => m['nik'] == initialVal);
+                _autoFillFromFamilyDataByName(member['nama_lengkap'] ?? '', keyStr);
               } else {
                 _checkAndAutoFillNik(initialVal, keyStr);
+              }
+            });
+          }
+        }
+
+        if (_isNamaField(model.namaField)) {
+          if (initialVal.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final isFamilyMember = _familyMembers.any(
+                (m) => (m['nama_lengkap'] ?? '').toString().trim().toLowerCase() == initialVal.trim().toLowerCase()
+              );
+              if (isFamilyMember) {
+                _autoFillFromFamilyDataByName(initialVal, keyStr);
               }
             });
           }
@@ -1018,7 +1195,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
           // Tipe Input Form Builder
           if (field.tipeField == 'text' || field.tipeField == 'number') ...[
-            if (_isNikField(field.namaField)) ...[
+            if (_isNamaField(field.namaField)) ...[
               if (_isLoadingFamily) ...[
                 DropdownButtonFormField<String>(
                   initialValue: null,
@@ -1049,28 +1226,31 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                   builder: (context) {
                     String? selectedValue;
                     final currentText = _controllers[keyStr]?.text.trim() ?? '';
-                    final exists = _familyMembers.any((m) => m['nik'] == currentText);
+                    final exists = _familyMembers.any((m) => (m['nama_lengkap'] ?? '').toString().trim().toLowerCase() == currentText.toLowerCase());
                     if (exists) {
-                      selectedValue = currentText;
+                      selectedValue = _familyMembers.firstWhere((m) => (m['nama_lengkap'] ?? '').toString().trim().toLowerCase() == currentText.toLowerCase())['nama_lengkap'];
                     } else if (currentText.isEmpty && _familyMembers.isNotEmpty) {
-                      final userNik = AuthService().currentUser?.nik ?? '';
-                      final userMember = _familyMembers.firstWhere((m) => m['nik'] == userNik, orElse: () => _familyMembers.first);
-                      selectedValue = userMember['nik'];
+                      final userNama = AuthService().currentUser?.nama ?? '';
+                      final userMember = _familyMembers.firstWhere(
+                        (m) => (m['nama_lengkap'] ?? '').toString().trim().toLowerCase() == userNama.toLowerCase(),
+                        orElse: () => _familyMembers.first,
+                      );
+                      selectedValue = userMember['nama_lengkap'];
                       _controllers[keyStr]?.text = selectedValue ?? '';
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _autoFillFromFamilyData(selectedValue!, keyStr);
+                        _autoFillFromFamilyDataByName(selectedValue!, keyStr);
                       });
                     }
 
                     return DropdownButtonFormField<String>(
-                      initialValue: selectedValue,
+                      value: selectedValue,
                       style: const TextStyle(
                         fontSize: 14, 
                         color: Color(0xFF1e293b),
                       ),
                       isExpanded: true,
                       decoration: InputDecoration(
-                        hintText: "Pilih NIK Keluarga",
+                        hintText: "Pilih Nama Pemohon",
                         hintStyle: const TextStyle(color: Color(0xFF94a3b8), fontSize: 13),
                         fillColor: const Color(0xFFf8fafc),
                         filled: true,
@@ -1096,12 +1276,11 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                         ),
                       ),
                       items: _familyMembers.map((member) {
-                        final nik = member['nik'] ?? '';
                         final nama = member['nama_lengkap'] ?? '';
                         return DropdownMenuItem<String>(
-                          value: nik,
+                          value: nama,
                           child: Text(
-                            "$nik - $nama",
+                            nama,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 13),
                           ),
@@ -1109,15 +1288,12 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setState(() {
-                            _controllers[keyStr]?.text = val;
-                          });
-                          _autoFillFromFamilyData(val, keyStr);
+                          _onNameChanged(val, keyStr);
                         }
                       },
                       validator: (val) {
                         if (field.isRequired && (val == null || val.trim().isEmpty)) {
-                          return "NIK wajib dipilih.";
+                          return "Nama wajib dipilih.";
                         }
                         return null;
                       },
@@ -1127,7 +1303,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
               ] else ...[
                 TextFormField(
                   controller: _controllers[keyStr],
-                  keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
+                  keyboardType: TextInputType.text,
                   style: const TextStyle(
                     fontSize: 14, 
                     color: Color(0xFF1e293b),
@@ -1170,6 +1346,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
               TextFormField(
                 controller: _controllers[keyStr],
                 keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
+                inputFormatters: _isNikField(field.namaField)
+                    ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)]
+                    : null,
                 style: const TextStyle(
                   fontSize: 14, 
                   color: Color(0xFF1e293b),
@@ -1203,6 +1382,9 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                 validator: (val) {
                   if (field.isRequired && (val == null || val.trim().isEmpty)) {
                     return "Isian '${field.namaField}' wajib diisi.";
+                  }
+                  if (_isNikField(field.namaField) && val != null && val.trim().length != 16) {
+                    return "NIK harus tepat 16 digit.";
                   }
                   return null;
                 },
