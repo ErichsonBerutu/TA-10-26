@@ -286,14 +286,23 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
 
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetailPengajuanPage(pengajuan: p),
-          ),
-        ).then((_) {
-          _loadAllData();
-        });
+        if (isDisetujui) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PdfPreviewPage(pengajuan: p),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DetailPengajuanPage(pengajuan: p),
+            ),
+          ).then((_) {
+            _loadAllData();
+          });
+        }
       },
       borderRadius: BorderRadius.circular(18),
       child: Container(
