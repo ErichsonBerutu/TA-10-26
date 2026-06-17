@@ -292,7 +292,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     if (token == null) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/penduduk/family');
+      final url = Uri.parse('${ApiConfig.baseUrl}/my-kk');
       final response = await http.get(
         url,
         headers: {
@@ -303,8 +303,8 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        if (body['status'] == 'success' && body['data'] != null) {
-          final List rawList = body['data'];
+        if (body['status'] == 'success' && body['data'] != null && body['data']['anggota'] != null) {
+          final List rawList = body['data']['anggota'];
           if (mounted) {
             setState(() {
               _familyMembers = List<Map<String, dynamic>>.from(rawList);
@@ -366,12 +366,16 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         }
       } else if (fieldLabel == 'tanggal lahir' || fieldLabel.contains('tanggal lahir') || fieldLabel == 'tanggal_lahir' || fieldLabel == 'tgl_lahir') {
         if (member['tanggal_lahir'] != null) {
+          String tglVal = member['tanggal_lahir'].toString();
+          if (tglVal.contains('T')) {
+            tglVal = tglVal.split('T')[0];
+          }
           if (model.tipeField == 'date') {
             setState(() {
-              _answers[keyStr] = member['tanggal_lahir'];
+              _answers[keyStr] = tglVal;
             });
           } else if (_controllers[keyStr] != null) {
-            _controllers[keyStr]!.text = member['tanggal_lahir'];
+            _controllers[keyStr]!.text = tglVal;
           }
         }
       } else if (fieldLabel == 'jenis kelamin' || fieldLabel == 'kelamin' || fieldLabel.contains('jenis kelamin') || fieldLabel == 'gender') {
@@ -458,13 +462,23 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           controller.addListener(() {
             final text = controller.text.trim();
             if (text.length == 16) {
-              _checkAndAutoFillNik(text, keyStr);
+              final isFamilyMember = _familyMembers.any((m) => m['nik'] == text);
+              if (isFamilyMember) {
+                _autoFillFromFamilyData(text, keyStr);
+              } else {
+                _checkAndAutoFillNik(text, keyStr);
+              }
             }
           });
 
           if (initialVal.length == 16) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _checkAndAutoFillNik(initialVal, keyStr);
+              final isFamilyMember = _familyMembers.any((m) => m['nik'] == initialVal);
+              if (isFamilyMember) {
+                _autoFillFromFamilyData(initialVal, keyStr);
+              } else {
+                _checkAndAutoFillNik(initialVal, keyStr);
+              }
             });
           }
         }
