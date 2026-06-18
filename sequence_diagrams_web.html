@@ -529,11 +529,16 @@ sequenceDiagram
     activate IV
     IV->>IC: openCreateAccountModal(id_penduduk)
     activate IC
-    IC->>DB: Query data nama dan NIK penduduk
+    IC->>DB: Query data nama, NIK, & kedudukan_keluarga
     activate DB
     DB-->>IC: return penduduk object
     deactivate DB
-    IC-->>IV: Tampilkan Modal Form Tambah Akun Warga
+    alt kedudukan_keluarga !== 'KEPALA KELUARGA'
+        IC-->>IV: Dispatch SweetAlert error (Akses Ditolak)
+        IV-->>A: Tampilkan alert penolakan
+    else kedudukan_keluarga === 'KEPALA KELUARGA'
+        IC-->>IV: Tampilkan Modal Form Tambah Akun Warga
+    end
     deactivate IC
     deactivate IV
 
@@ -542,24 +547,30 @@ sequenceDiagram
     A->>IV: Klik tombol Simpan Akun
     IV->>IC: Panggil fungsi saveAccount()
     activate IC
-    IC->>IC: Jalankan validasi (Email unik, Password min 6)
-    
-    IC->>DB: Insert data baru ke tabel users (role='masyarakat', id_penduduk, password_plain)
+    IC->>DB: Validasi ulang kedudukan_keluarga
     activate DB
-    DB-->>IC: return success
+    DB-->>IC: return penduduk object
     deactivate DB
+    alt validasi kedudukan_keluarga gagal
+        IC-->>IV: Dispatch SweetAlert error (Akses Ditolak)
+    else validasi kedudukan_keluarga sukses
+        IC->>IC: Jalankan validasi (Email unik, Password min 6)
+        IC->>DB: Insert data baru ke tabel users (role='masyarakat', id_penduduk, password_plain)
+        activate DB
+        DB-->>IC: return success
+        deactivate DB
 
-    Note over IC,FS: Proses Pencatatan Spreadsheets CSV
-    IC->>FS: Buka berkas public/excel/pertinggal_akun_warga.csv
-    activate FS
-    FS->>FS: Tambahkan baris baru (Nama, NIK, Email, Password Polos, Tanggal Dibuat)
-    FS-->>IC: return success
-    deactivate FS
+        Note over IC,FS: Proses Pencatatan Spreadsheets CSV
+        IC->>FS: Buka berkas public/excel/pertinggal_akun_warga.csv
+        activate FS
+        FS->>FS: Tambahkan baris baru (Nama, NIK, Email, Password Polos, Tanggal Dibuat)
+        FS-->>IC: return success
+        deactivate FS
 
-    IC-->>IV: Dispatch SweetAlert sukses (Akun Berhasil Dibuat!)
+        IC-->>IV: Dispatch SweetAlert sukses (Akun Berhasil Dibuat!)
+        IV-->>A: Tutup modal dan tampilkan alert sukses pembuatan akun
+    end
     deactivate IC
-    activate IV
-    IV-->>A: Tutup modal dan tampilkan alert sukses pembuatan akun
     deactivate IV
         </pre>
       </div>
@@ -579,11 +590,16 @@ sequenceDiagram
     activate IV
     IV->>IC: openCreateAccountModal(id_penduduk)
     activate IC
-    IC->>DB: Query data nama dan NIK penduduk
+    IC->>DB: Query data nama, NIK, & kedudukan_keluarga
     activate DB
     DB-->>IC: return penduduk object
     deactivate DB
-    IC-->>IV: Tampilkan Modal Form Tambah Akun Warga
+    alt kedudukan_keluarga !== 'KEPALA KELUARGA'
+        IC-->>IV: Dispatch SweetAlert error (Akses Ditolak)
+        IV-->>A: Tampilkan alert penolakan
+    else kedudukan_keluarga === 'KEPALA KELUARGA'
+        IC-->>IV: Tampilkan Modal Form Tambah Akun Warga
+    end
     deactivate IC
     deactivate IV
 
@@ -592,24 +608,30 @@ sequenceDiagram
     A->>IV: Klik tombol Simpan Akun
     IV->>IC: Panggil fungsi saveAccount()
     activate IC
-    IC->>IC: Jalankan validasi (Email unik, Password min 6)
-    
-    IC->>DB: Insert data baru ke tabel users (role='masyarakat', id_penduduk, password_plain)
+    IC->>DB: Validasi ulang kedudukan_keluarga
     activate DB
-    DB-->>IC: return success
+    DB-->>IC: return penduduk object
     deactivate DB
+    alt validasi kedudukan_keluarga gagal
+        IC-->>IV: Dispatch SweetAlert error (Akses Ditolak)
+    else validasi kedudukan_keluarga sukses
+        IC->>IC: Jalankan validasi (Email unik, Password min 6)
+        IC->>DB: Insert data baru ke tabel users (role='masyarakat', id_penduduk, password_plain)
+        activate DB
+        DB-->>IC: return success
+        deactivate DB
 
-    Note over IC,FS: Proses Pencatatan Spreadsheets CSV
-    IC->>FS: Buka berkas public/excel/pertinggal_akun_warga.csv
-    activate FS
-    FS->>FS: Tambahkan baris baru (Nama, NIK, Email, Password Polos, Tanggal Dibuat)
-    FS-->>IC: return success
-    deactivate FS
+        Note over IC,FS: Proses Pencatatan Spreadsheets CSV
+        IC->>FS: Buka berkas public/excel/pertinggal_akun_warga.csv
+        activate FS
+        FS->>FS: Tambahkan baris baru (Nama, NIK, Email, Password Polos, Tanggal Dibuat)
+        FS-->>IC: return success
+        deactivate FS
 
-    IC-->>IV: Dispatch SweetAlert sukses (Akun Berhasil Dibuat!)
+        IC-->>IV: Dispatch SweetAlert sukses (Akun Berhasil Dibuat!)
+        IV-->>A: Tutup modal dan tampilkan alert sukses pembuatan akun
+    end
     deactivate IC
-    activate IV
-    IV-->>A: Tutup modal dan tampilkan alert sukses pembuatan akun
     deactivate IV</code>
       </div>
     </div>

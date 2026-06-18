@@ -266,6 +266,7 @@ class _BerandaPageState extends State<BerandaPage>
   String _nomorHp = '+62 812 3456 7890';
   String _emailDesa = 'desa@hutabulumejan.go.id';
   String _jamKerja = 'Senin – Jumat, 08.00 – 16.00';
+  String? _logoUrl;
 
   Future<void> _fetchSettings() async {
     try {
@@ -286,6 +287,7 @@ class _BerandaPageState extends State<BerandaPage>
               _nomorHp = data['nomor_hp']?.toString() ?? _nomorHp;
               _emailDesa = data['email']?.toString() ?? _emailDesa;
               _jamKerja = data['jam_kerja']?.toString() ?? _jamKerja;
+              _logoUrl = data['logo_url']?.toString();
             });
           }
         }
@@ -1036,97 +1038,84 @@ class _BerandaPageState extends State<BerandaPage>
   // ──────────────────────────────────────────────────────────
 
   Widget _buildWelcomeBanner() {
+    final user = AuthService().currentUser;
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/beranda.jpg'),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            Colors.black38,
+            BlendMode.darken,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563eb).withOpacity(0.08),
+            color: Colors.black.withOpacity(0.12),
             blurRadius: 16,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 3,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFeff6ff),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFbfdbfe)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 5,
-                        height: 5,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2563eb),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      const Text(
-                        'BERANDA',
-                        style: TextStyle(
-                          color: Color(0xFF2563eb),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.4,
-                        ),
-                      ),
-                    ],
+                  width: 5,
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(width: 5),
                 const Text(
-                  'Selamat Datang,\nWarga Desa! 👋',
+                  'BERANDA',
                   style: TextStyle(
-                    color: Color(0xFF0f172a),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    height: 1.25,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Layanan administrasi desa\ndi ujung jari Anda',
-                  style: TextStyle(
-                    color: Color(0xFF64748b),
-                    fontSize: 12,
-                    height: 1.5,
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFdbeafe), Color(0xFFbfdbfe)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
+          const SizedBox(height: 8),
+          Text(
+            user != null ? 'Selamat Datang,\n${user.nama}!' : 'Selamat Datang,\nWarga Desa!',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              height: 1.25,
+              letterSpacing: -0.3,
             ),
-            child: const Center(
-              child: Text('🏘️', style: TextStyle(fontSize: 36)),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            user != null ? 'Masyarakat' : 'Layanan administrasi desa\ndi ujung jari Anda',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.85),
+              fontSize: 12,
+              height: 1.5,
             ),
           ),
         ],
