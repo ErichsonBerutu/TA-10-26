@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../api_config/api_config.dart';
 import '../services/auth_service.dart';
 import '../models/persyaratan_model.dart';
+import '../models/pengajuan_model.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
 import '../services/offline_database_service.dart';
 import '../services/sync_service.dart';
@@ -903,6 +904,86 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         _answers.remove(key);
       }
     });
+
+    // Cek duplikasi pengajuan (tiap nama hanya boleh mengajukan 1 jenis surat yang sama yang masih aktif/pending)
+    String currentApplicantName = '';
+    for (final syarat in _persyaratan) {
+      if (_isNamaField(syarat.namaField)) {
+        final val = _answers[syarat.id.toString()];
+        if (val != null) {
+          currentApplicantName = val.toString().trim();
+          break;
+        }
+      }
+    }
+    if (currentApplicantName.isEmpty) {
+      currentApplicantName = AuthService().currentUser?.nama ?? '';
+    }
+
+    bool isDuplicate = false;
+    final existingPengajuans = pengajuan_service.PengajuanService().daftarPengajuan;
+    for (final pgj in existingPengajuans) {
+      // Lewati pengajuan ini sendiri jika dalam mode edit
+      if (widget.isEditMode && pgj.id == widget.editPengajuanId) {
+        continue;
+      }
+
+      if (pgj.jenisSuratId == widget.jenisSuratId &&
+          (pgj.status == StatusPengajuan.menunggu || pgj.status == StatusPengajuan.diproses)) {
+        
+        String oldName = '';
+        for (final entry in pgj.data.entries) {
+          if (_isNamaField(entry.key)) {
+            oldName = entry.value.trim();
+            break;
+          }
+        }
+        if (oldName.isEmpty) {
+          oldName = AuthService().currentUser?.nama ?? '';
+        }
+
+        if (oldName.toLowerCase() == currentApplicantName.toLowerCase()) {
+          isDuplicate = true;
+          break;
+        }
+      }
+    }
+
+    if (isDuplicate) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Pengajuan Duplikat',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            'Anda sudah mengajukan permohonan "${widget.namaSurat}" untuk nama "$currentApplicantName" yang saat ini sedang menunggu atau sedang diproses.\n\nSilakan tunggu hingga pengajuan sebelumnya selesai diproses admin.',
+            style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF475569)),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1e293b),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Tutup', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
