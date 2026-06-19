@@ -190,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 4),
           Text(
-            "NIK : ${user.nik}",
+            "Nomor KK : ${user.nik}",
             style: const TextStyle(color: Colors.grey),
           ),
         ],
@@ -222,8 +222,14 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             _buildInfoRow(
               icon: Icons.badge_outlined,
-              label: 'NIK',
+              label: 'Nomor KK',
               value: user.nik,
+            ),
+            _buildDivider(),
+            _buildInfoRow(
+              icon: Icons.badge_outlined,
+              label: 'NIK',
+              value: user.noKtp.isNotEmpty ? user.noKtp : '-',
             ),
             _buildDivider(),
             _buildInfoRow(

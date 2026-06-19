@@ -289,7 +289,7 @@ class _LoginPageState extends State<LoginPage>
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Masukkan NIK dan Password',
+                'Masukkan Nomor KK dan Password',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 13,
@@ -307,16 +307,16 @@ class _LoginPageState extends State<LoginPage>
                 FilteringTextInputFormatter.digitsOnly,
               ],
               decoration: _inputDecoration(
-                hint: 'Masukkan NIK',
+                hint: 'Masukkan Nomor KK',
                 icon: Icons.badge,
                 counterText: '',
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) {
-                  return 'NIK wajib diisi';
+                  return 'Nomor KK wajib diisi';
                 }
                 if (v.length != 16) {
-                  return 'NIK harus 16 digit';
+                  return 'Nomor KK harus 16 digit';
                 }
                 return null;
               },

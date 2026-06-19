@@ -1019,46 +1019,8 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
     final isOnline = await SyncService().checkInternet();
     if (!isOnline) {
-      if (widget.isEditMode) {
-        setState(() => _isSubmitting = false);
-        _showErrorDialog('Gagal memperbarui pengajuan. Anda sedang offline.');
-        return;
-      }
-
-      debugPrint('Koneksi offline dideteksi saat submit, langsung simpan ke antrean offline.');
-      
-      final Map<String, String> localFormData = {};
-      for (final syarat in _persyaratan) {
-        final key = syarat.id.toString();
-        final val = _answers[key];
-        if (val is XFile) {
-          localFormData[syarat.namaField] = '[Unggahan Foto] ${val.name}';
-        } else if (val != null) {
-          localFormData[syarat.namaField] = val.toString();
-        }
-      }
-
-      final Map<String, dynamic> serializableAnswers = {};
-      _answers.forEach((key, value) {
-        if (value is XFile) {
-          serializableAnswers[key] = '[FILE_PATH]${value.path}';
-        } else {
-          serializableAnswers[key] = value;
-        }
-      });
-
-      await pengajuan_service.PengajuanService().tambahPengajuanOffline(
-        jenisSuratId: widget.jenisSuratId.toString(),
-        jenisSuratNama: widget.namaSurat,
-        emoji: _getEmojiForSurat(widget.namaSurat),
-        answers: serializableAnswers,
-        localFormData: localFormData,
-      );
-
-      await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
-
       setState(() => _isSubmitting = false);
-      _showSuccessDialog();
+      _showErrorDialog('Gagal mengirim pengajuan. Anda sedang offline atau server tidak aktif.');
       return;
     }
 
@@ -1133,47 +1095,8 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
         _showErrorDialog(errMsg);
       }
     } catch (e) {
-      if (widget.isEditMode) {
-        // Mode edit tidak support offline queue — tampilkan error
-        setState(() => _isSubmitting = false);
-        _showErrorDialog('Gagal memperbarui pengajuan. Periksa koneksi internet Anda dan coba lagi.');
-        return;
-      }
-
-      debugPrint('Koneksi bermasalah saat mengirim pengajuan, menyimpan ke antrean offline: $e');
-      
-      final Map<String, String> localFormData = {};
-      for (final syarat in _persyaratan) {
-        final key = syarat.id.toString();
-        final val = _answers[key];
-        if (val is XFile) {
-          localFormData[syarat.namaField] = '[Unggahan Foto] ${val.name}';
-        } else if (val != null) {
-          localFormData[syarat.namaField] = val.toString();
-        }
-      }
-
-      final Map<String, dynamic> serializableAnswers = {};
-      _answers.forEach((key, value) {
-        if (value is XFile) {
-          serializableAnswers[key] = '[FILE_PATH]${value.path}';
-        } else {
-          serializableAnswers[key] = value;
-        }
-      });
-
-      await pengajuan_service.PengajuanService().tambahPengajuanOffline(
-        jenisSuratId: widget.jenisSuratId.toString(),
-        jenisSuratNama: widget.namaSurat,
-        emoji: _getEmojiForSurat(widget.namaSurat),
-        answers: serializableAnswers,
-        localFormData: localFormData,
-      );
-
-      await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
-
       setState(() => _isSubmitting = false);
-      _showSuccessDialog();
+      _showErrorDialog('Gagal mengirim pengajuan. Periksa koneksi internet Anda dan coba lagi.');
     }
   }
 

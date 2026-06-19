@@ -6,6 +6,7 @@ import '../models/pengaduan_model.dart';
 import '../models/respons_model.dart';
 import '../services/respons_service.dart';
 import '../api_config/api_config.dart';
+import '../widgets/custom_cached_image.dart';
 
 // ============================================================
 //  HALAMAN — Detail Pengaduan (Lihat Respons Admin)
@@ -346,13 +347,12 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
     final minuteStr = tanggal.minute.toString().padLeft(2, '0');
     return '${tanggal.day}/${tanggal.month}/${tanggal.year} $hourStr:$minuteStr';
   }
-
   Widget _buildImageWidget(String path) {
     if (path.startsWith('http://') || path.startsWith('https://')) {
-      return Image.network(
-        path,
+      return CustomCachedImage(
+        imageUrl: path,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => const Center(
+        errorWidget: const Center(
           child: Icon(Icons.broken_image_rounded, color: Colors.red, size: 40),
         ),
       );
@@ -360,10 +360,10 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
       final rootUrl = ApiConfig.baseUrl.replaceAll('/api', '');
       final cleanPath = path.startsWith('/') ? path.substring(1) : path;
       final fullUrl = "$rootUrl/$cleanPath";
-      return Image.network(
-        fullUrl,
+      return CustomCachedImage(
+        imageUrl: fullUrl,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => const Center(
+        errorWidget: const Center(
           child: Icon(Icons.broken_image_rounded, color: Colors.red, size: 40),
         ),
       );

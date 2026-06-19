@@ -7,6 +7,7 @@ import 'beranda_page.dart' hide PengumumanItem;
 import 'pengaduan_page.dart';
 import 'profile_page.dart';
 import 'surat_page.dart';
+import '../widgets/custom_cached_image.dart';
 
 // ============================================================
 //  HALAMAN PENGUMUMAN — Terhubung ke Backend API
@@ -562,20 +563,14 @@ class _PengumumanPageState extends State<PengumumanPage>
         color: const Color(0xFFe2e8f0),
       ),
       clipBehavior: Clip.hardEdge,
-      child: Image.network(
-        url,
+      child: CustomCachedImage(
+        imageUrl: url,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Center(
+        errorWidget: const Center(
           child: Icon(Icons.broken_image_rounded,
               color: Color(0xFF94a3b8), size: 32),
         ),
-        loadingBuilder: (_, child, progress) => progress == null
-            ? child
-            : const Center(
-                child: CircularProgressIndicator(
-                    color: Color(0xFF2563eb), strokeWidth: 2),
-              ),
       ),
     );
   }
@@ -756,10 +751,10 @@ class _DetailPengumumanPage extends StatelessWidget {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image.network(
-                                    data.gambarUrl!,
+                                  CustomCachedImage(
+                                    imageUrl: data.gambarUrl!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
+                                    errorWidget: Container(
                                       color: const Color(0xFFe2e8f0),
                                       child: const Center(
                                         child: Icon(
@@ -892,10 +887,10 @@ class _FullScreenImagePage extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 0.8,
           maxScale: 4.0,
-          child: Image.network(
-            url,
+          child: CustomCachedImage(
+            imageUrl: url,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Center(
+            errorWidget: const Center(
               child: Icon(Icons.broken_image_rounded,
                   color: Colors.white54, size: 60),
             ),

@@ -16,6 +16,7 @@ import 'surat_page.dart';
 import 'pengaduan_page.dart';
 import 'profile_page.dart';
 import 'riwayat_layanan_page.dart';
+import '../widgets/custom_cached_image.dart';
 
 // ============================================================
 //  MODEL DATA
@@ -1446,29 +1447,15 @@ class _BerandaPageState extends State<BerandaPage>
               children: [
                 // Background image berita jika ada gambar
                 if (berita.gambarUrl != null && berita.gambarUrl!.isNotEmpty)
-                  Image.network(
-                    berita.gambarUrl!,
+                  CustomCachedImage(
+                    imageUrl: berita.gambarUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: const Color(0xFF1e40af),
-                        child: const Center(
-                          child: Icon(Icons.broken_image_rounded, color: Colors.white30, size: 48),
-                        ),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: const Color(0xFF1e40af),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white30),
-                          ),
-                        ),
-                      );
-                    },
+                    errorWidget: Container(
+                      color: const Color(0xFF1e40af),
+                      child: const Center(
+                        child: Icon(Icons.broken_image_rounded, color: Colors.white30, size: 48),
+                      ),
+                    ),
                   ),
                 // Overlay gelap di atas gambar berita agar tulisan terbaca
                 Container(
@@ -1667,10 +1654,10 @@ class _BerandaPageState extends State<BerandaPage>
                   fit: StackFit.expand,
                   children: [
                     if (hasImage)
-                      Image.network(
-                        berita.gambarUrl!,
+                      CustomCachedImage(
+                        imageUrl: berita.gambarUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Center(
+                        errorWidget: const Center(
                           child: Icon(Icons.broken_image_rounded, color: Colors.white30, size: 60),
                         ),
                       )
@@ -2230,12 +2217,12 @@ class _BerandaPageState extends State<BerandaPage>
       if (gambarUrl != null && gambarUrl.isNotEmpty) {
         leadingWidget = ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: Image.network(
-            gambarUrl,
+          child: CustomCachedImage(
+            imageUrl: gambarUrl,
             fit: BoxFit.cover,
             width: 48,
             height: 48,
-            errorBuilder: (_, __, ___) => Center(
+            errorWidget: Center(
               child: Icon(Icons.campaign_rounded, color: badgeColor, size: 22),
             ),
           ),
@@ -2391,10 +2378,10 @@ class _BerandaPageState extends State<BerandaPage>
                   fit: StackFit.expand,
                   children: [
                     if (hasImage)
-                      Image.network(
-                        pengumuman.gambarUrl!,
+                      CustomCachedImage(
+                        imageUrl: pengumuman.gambarUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Center(
+                        errorWidget: const Center(
                           child: Icon(Icons.broken_image_rounded, color: Colors.white30, size: 60),
                         ),
                       )

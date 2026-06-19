@@ -18,6 +18,7 @@ import '../models/pengaduan_model.dart' as model_pengaduan;
 import '../api_config/api_config.dart';
 import 'pdf_preview_page.dart';
 import 'pengaduan_detail_page.dart';
+import '../widgets/custom_cached_image.dart';
 import 'detail_pengajuan_page.dart';
 
 class RiwayatLayananPage extends StatefulWidget {
@@ -780,10 +781,10 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
                       color: Color(0xFF94a3b8), size: 36),
                 ),
               )
-            : Image.network(
-                fullUrl,
+            : CustomCachedImage(
+                imageUrl: fullUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Center(
+                errorWidget: const Center(
                   child: Icon(Icons.broken_image_rounded,
                       color: Color(0xFF94a3b8), size: 36),
                 ),

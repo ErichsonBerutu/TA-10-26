@@ -221,34 +221,8 @@ class PengaduanService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Koneksi bermasalah, menyimpan Pengaduan ke Antrean Sync Latar Belakang: $e');
-
-      // ── ARSITEKTUR OFFLINE-FIRST: Simpan ke antrean lokal ──
-      await OfflineDatabaseService().tambahKeSyncQueue(
-        action: 'tambah_pengaduan',
-        payload: {
-          'judul': judul,
-          'deskripsi': deskripsi,
-          'jenis': PengaduanItem.jenisToString(jenis),
-          'fotoPath': fotoPath,
-        },
-      );
-
-      // Masukkan item sementara ke memory list agar langsung tampil di UI
-      final pendingItem = PengaduanItem(
-        id: 'SYNC-${DateTime.now().millisecondsSinceEpoch}',
-        judul: judul,
-        deskripsi: deskripsi,
-        jenis: jenis,
-        tanggalAjuan: DateTime.now(),
-        fotoPath: fotoPath,
-        status: StatusPengaduan.menunggu,
-        catatanAdmin: 'Menunggu sinkronisasi internet... 🔄',
-      );
-      _list.insert(0, pendingItem);
-      
-      notifyListeners();
-      return true; // Kembalikan true karena berhasil ditangani secara offline
+      debugPrint('Gagal mengirim pengaduan karena offline: $e');
+      return false;
     }
   }
 

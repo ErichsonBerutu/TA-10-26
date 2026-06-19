@@ -117,7 +117,7 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 401) {
         final responseData = jsonDecode(response.body);
-        return LoginResult(false, responseData['message'] ?? 'NIK / Password salah');
+        return LoginResult(false, responseData['message'] ?? 'Nomor KK / Password salah');
       }
 
       if (response.statusCode == 403) {

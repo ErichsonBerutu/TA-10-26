@@ -4,6 +4,7 @@ import '../services/respons_service.dart';
 import '../models/respons_model.dart';
 import '../services/auth_service.dart';
 import '../api_config/api_config.dart';
+import '../widgets/custom_cached_image.dart';
 
 class PengaduanDetailPage extends StatefulWidget {
   final PengaduanItem pengaduan;
@@ -250,12 +251,12 @@ class _PengaduanDetailPageState extends State<PengaduanDetailPage> {
                       const SizedBox(height: 10),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          fotoUrl,
+                        child: CustomCachedImage(
+                          imageUrl: fotoUrl,
                           fit: BoxFit.cover,
                           height: 240,
                           width: double.infinity,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorWidget: Container(
                             height: 120,
                             decoration: BoxDecoration(
                               color: const Color(0xFFf1f5f9),
