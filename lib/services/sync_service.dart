@@ -8,28 +8,52 @@ import './offline_database_service.dart';
 import './auth_service.dart';
 import './pengaduan_service.dart';
 import './pengajuan_service.dart';
+import './connectivity_service.dart';
 
 class SyncService extends ChangeNotifier {
   static final SyncService _instance = SyncService._internal();
   factory SyncService() => _instance;
-  SyncService._internal();
+  SyncService._internal() {
+    // Daftarkan diri ke SyncServiceRef agar ConnectivityService bisa
+    // memanggil processSyncQueue() tanpa circular dependency
+    SyncServiceRef.register(this);
+  }
 
   final _db = OfflineDatabaseService();
   bool _isSyncing = false;
+  int _pendingCount = 0;
 
   bool get isSyncing => _isSyncing;
 
-  /// Memeriksa apakah koneksi internet atau server backend tersedia
+  /// Jumlah item yang menunggu di antrean offline
+  int get pendingCount => _pendingCount;
+
+  /// Perbarui cachedPendingCount dari antrean — panggil setelah add/remove queue
+  Future<void> refreshPendingCount() async {
+    final queue = await _db.ambilSyncQueue();
+    _pendingCount = queue.length;
+    notifyListeners();
+  }
+
+  /// Memeriksa apakah koneksi internet atau server backend tersedia.
+  /// Menggunakan ConnectivityService (cached & real-time) sebagai primary,
+  /// dengan fallback ke lookup manual jika service belum diinisialisasi.
   Future<bool> checkInternet() async {
+    // Primary: gunakan ConnectivityService yang sudah di-cache
     try {
-      // Coba lookup host backend API
+      return await ConnectivityService().checkNow();
+    } catch (_) {}
+
+    // Fallback manual
+    try {
       final uri = Uri.parse(ApiConfig.baseUrl);
-      final result = await InternetAddress.lookup(uri.host).timeout(const Duration(seconds: 4));
+      final result = await InternetAddress.lookup(uri.host)
+          .timeout(const Duration(seconds: 4));
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } catch (_) {
       try {
-        // Coba ping google.com sebagai alternatif
-        final result = await InternetAddress.lookup('google.com').timeout(const Duration(seconds: 4));
+        final result = await InternetAddress.lookup('8.8.8.8')
+            .timeout(const Duration(seconds: 3));
         return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       } catch (_) {
         return false;
@@ -99,6 +123,9 @@ class SyncService extends ChangeNotifier {
       // Refresh data lokal di service terkait setelah proses sinkronisasi selesai
       await PengaduanService().muatRiwayatPengaduan();
       await PengajuanService().muatDaftarPengajuan();
+
+      // Update cached pending count
+      await refreshPendingCount();
 
     } catch (e) {
       debugPrint('ERROR SyncService.processSyncQueue: $e');

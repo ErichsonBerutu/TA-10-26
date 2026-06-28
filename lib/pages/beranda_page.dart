@@ -7,6 +7,7 @@ import '../services/berita_service.dart';
 import '../services/pengumuman_service.dart' as svc_pengumuman;
 import '../services/sync_service.dart';
 import '../services/fcm_service.dart';
+import '../services/connectivity_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config/api_config.dart';
@@ -305,6 +306,10 @@ class _BerandaPageState extends State<BerandaPage>
   final _notifSvc = NotifikasiService();       // real notifikasi dari server
   final _beritaSvc = BeritaService();          // real berita dari server
   final _pengumumanSvc = svc_pengumuman.PengumumanService(); // real pengumuman dari server
+  final _connectivitySvc = ConnectivityService(); // monitor koneksi real-time
+
+  bool _isOnline = true;     // status koneksi saat ini
+  StreamSubscription<bool>? _connectivitySub;
 
   List<dynamic> get _carouselItems {
     if (_beritaSvc.daftar.isNotEmpty) {
@@ -345,7 +350,19 @@ class _BerandaPageState extends State<BerandaPage>
     // Fetch notifikasi, berita, & pengumuman dari server saat beranda dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _fetchSettings(); // Muat pengaturan profil desa dinamis
-      await FcmService().initialize(); // Inisialisasi FCM Service saat beranda terbuka
+      try {
+        await FcmService().initialize(); // Inisialisasi FCM Service saat beranda terbuka
+      } catch (e) {
+        debugPrint("FCM initialization failed on beranda: $e");
+      }
+
+      // Inisialisasi ConnectivityService & subscribe status perubahan
+      await _connectivitySvc.initialize();
+      _isOnline = _connectivitySvc.isOnline;
+      _connectivitySub = _connectivitySvc.onStatusChanged.listen((online) {
+        if (mounted) setState(() => _isOnline = online);
+      });
+
       _notifSvc.startPeriodicFetch(intervalSeconds: 10);
       _beritaSvc.muatBerita(forceRefresh: true);
       _pengumumanSvc.muatPengumuman(forceRefresh: true);
@@ -377,6 +394,7 @@ class _BerandaPageState extends State<BerandaPage>
     _beritaSvc.removeListener(_refresh);
     _pengumumanSvc.removeListener(_refresh);
     _notifSvc.stopPeriodicFetch();
+    _connectivitySub?.cancel();
     _timer?.cancel();
     _pageController.dispose();
     _pulseCtrl.dispose();
@@ -831,6 +849,76 @@ class _BerandaPageState extends State<BerandaPage>
   }
 
   // ──────────────────────────────────────────────────────────
+  //  OFFLINE BANNER
+  // ──────────────────────────────────────────────────────────
+
+  Widget _buildOfflineBanner() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      width: double.infinity,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFf59e0b), Color(0xFFd97706)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFd97706).withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Text('📡', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mode Offline Aktif',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    'Data pengajuan & pengaduan akan dikirim otomatis saat online.',
+                    style: TextStyle(
+                      color: Color(0xFFfef3c7),
+                      fontSize: 10,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
   //  BUILD
   // ──────────────────────────────────────────────────────────
 
@@ -860,6 +948,7 @@ class _BerandaPageState extends State<BerandaPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (!_isOnline) _buildOfflineBanner(),
                       _buildWelcomeBanner(),
                       _buildCarousel(),
                       _buildDots(),

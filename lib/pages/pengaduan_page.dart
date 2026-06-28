@@ -938,7 +938,7 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(milliseconds: 600));
 
-    final success = await _service.kirimPengaduan(
+    final result = await _service.kirimPengaduan(
       judul: _judulCtrl.text.trim(),
       deskripsi: _deskCtrl.text.trim(),
       jenis: widget.jenisData.jenis,
@@ -948,8 +948,10 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    if (success) {
+    if (result == PengaduanKirimResult.success) {
       _showSuccessDialog();
+    } else if (result == PengaduanKirimResult.offlineQueued) {
+      _showOfflineSavedDialog();
     } else {
       _showError('Gagal mengirim pengaduan. Periksa koneksi atau login Anda.');
     }
@@ -1042,6 +1044,144 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFF16a34a).withOpacity(0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Lihat Riwayat',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dialog saat pengaduan berhasil disimpan ke antrean offline
+  void _showOfflineSavedDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: '',
+      barrierColor: Colors.black.withOpacity(0.45),
+      transitionDuration: const Duration(milliseconds: 350),
+      transitionBuilder: (_, anim, __, child) => ScaleTransition(
+        scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      pageBuilder: (_, __, ___) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 40,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFf59e0b), Color(0xFFd97706)],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFd97706).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text('📥', style: TextStyle(fontSize: 34)),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Tersimpan!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0f172a),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Pengaduan disimpan di perangkat Anda.\nAkan otomatis dikirim ke server saat koneksi internet kembali tersedia.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748b),
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfefce8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFfde68a)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text('💡', style: TextStyle(fontSize: 16)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Pastikan aplikasi tetap terpasang agar data terkirim saat online.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF92400e),
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFf59e0b), Color(0xFFd97706)],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFd97706).withOpacity(0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

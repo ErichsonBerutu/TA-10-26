@@ -87,20 +87,27 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   }
 
   bool _isNikField(String label) {
-    final lower = label.toLowerCase().trim();
-    return lower == 'nik' ||
-        lower.contains('no. nik') ||
-        lower.contains('no.nik') ||
-        lower.contains('nomor nik') ||
-        lower.contains('nomor induk kependudukan') ||
-        lower == 'n i k' ||
-        lower == 'no ktp' ||
-        lower == 'no. ktp' ||
-        lower == 'nomor ktp' ||
-        lower == 'ktp' ||
-        lower.contains('no. ktp') ||
-        lower.contains('nomor ktp') ||
-        lower.contains('no ktp');
+    final clean = label.replaceAll('*', '').toLowerCase().trim();
+    return clean == 'nik' ||
+        clean.contains('no. nik') ||
+        clean.contains('no.nik') ||
+        clean.contains('nomor nik') ||
+        clean.contains('nomor induk kependudukan') ||
+        clean == 'n i k' ||
+        clean == 'no ktp' ||
+        clean == 'no. ktp' ||
+        clean == 'nomor ktp' ||
+        clean == 'ktp' ||
+        clean.contains('no. ktp') ||
+        clean.contains('nomor ktp') ||
+        clean.contains('no ktp') ||
+        clean == 'kk' ||
+        clean.contains('no. kk') ||
+        clean.contains('no.kk') ||
+        clean.contains('nomor kk') ||
+        clean.contains('nomor kartu keluarga') ||
+        clean == 'k k' ||
+        clean.contains('kartu keluarga');
   }
 
   bool _isCheckingNik = false;
@@ -358,12 +365,12 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   }
 
   bool _isNamaField(String label) {
-    final lower = label.toLowerCase().trim();
-    return lower == 'nama' ||
-        lower == 'nama lengkap' ||
-        lower == 'nama_lengkap' ||
-        lower.contains('nama pemohon') ||
-        lower.contains('nama lengkap pemohon');
+    final clean = label.replaceAll('*', '').toLowerCase().trim();
+    return clean == 'nama' ||
+        clean == 'nama lengkap' ||
+        clean == 'nama_lengkap' ||
+        clean.contains('nama pemohon') ||
+        clean.contains('nama lengkap pemohon');
   }
 
   bool _isChangingData = false;
@@ -658,20 +665,21 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
         if (_isNikField(model.namaField)) {
           controller.addListener(() {
-            final text = controller.text.trim();
-            if (text.length == 16) {
-              _onNikChanged(text, keyStr);
+            final clean = controller.text.replaceAll(' ', '').trim();
+            if (clean.length == 16) {
+              _onNikChanged(clean, keyStr);
             }
           });
 
-          if (initialVal.length == 16) {
+          final cleanInitial = initialVal.replaceAll(' ', '').trim();
+          if (cleanInitial.length == 16) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              final isFamilyMember = _familyMembers.any((m) => m['nik'] == initialVal);
+              final isFamilyMember = _familyMembers.any((m) => m['nik'] == cleanInitial);
               if (isFamilyMember) {
-                final member = _familyMembers.firstWhere((m) => m['nik'] == initialVal);
+                final member = _familyMembers.firstWhere((m) => m['nik'] == cleanInitial);
                 _autoFillFromFamilyDataByName(member['nama_lengkap'] ?? '', keyStr);
               } else {
-                _checkAndAutoFillNik(initialVal, keyStr);
+                _checkAndAutoFillNik(cleanInitial, keyStr);
               }
             });
           }
@@ -898,8 +906,14 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
   // ── SUBMIT MULTIPART FORM DATA ─────────────────────────────────
   Future<void> _submitForm() async {
     _controllers.forEach((key, controller) {
-      if (controller.text.trim().isNotEmpty) {
-        _answers[key] = controller.text.trim();
+      final text = controller.text.trim();
+      if (text.isNotEmpty) {
+        final syarat = _persyaratan.firstWhere((p) => p.id.toString() == key, orElse: () => null as dynamic);
+        if (syarat != null && _isNikField(syarat.namaField)) {
+          _answers[key] = text.replaceAll(' ', '');
+        } else {
+          _answers[key] = text;
+        }
       } else {
         _answers.remove(key);
       }
@@ -1017,12 +1031,51 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
 
     setState(() => _isSubmitting = true);
 
+    // Cek apakah online — jika offline, masukkan ke Sync Queue
     final isOnline = await SyncService().checkInternet();
     if (!isOnline) {
+      // ── MODE OFFLINE: Simpan ke Sync Queue ──────────────────────
+      // Kumpulkan semua jawaban (teks & path file)
+      final Map<String, dynamic> offlineAnswers = {};
+      for (final entry in _answers.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (value is XFile) {
+          offlineAnswers[key] = '[FILE_PATH]${value.path}';
+        } else if (value != null && value.toString().isNotEmpty) {
+          offlineAnswers[key] = value.toString();
+        }
+      }
+
+      // Bangun local_form_data (nama field → nilai) untuk tampil di riwayat
+      final Map<String, String> localFormData = {};
+      for (final syarat in _persyaratan) {
+        final key = syarat.id.toString();
+        final val = _answers[key];
+        if (val is XFile) {
+          localFormData[syarat.namaField] = '[Unggahan Foto] ${val.name}';
+        } else if (val != null && val.toString().isNotEmpty) {
+          localFormData[syarat.namaField] = val.toString();
+        }
+      }
+
+      // tambahPengajuanOffline() sudah menangani sync queue + update list
+      await pengajuan_service.PengajuanService().tambahPengajuanOffline(
+        jenisSuratId: widget.jenisSuratId.toString(),
+        jenisSuratNama: widget.namaSurat,
+        emoji: _getEmojiForSurat(widget.namaSurat),
+        answers: offlineAnswers,
+        localFormData: localFormData,
+      );
+
+      // Hapus draft setelah masuk antrian
+      await OfflineDatabaseService().hapusDraftPengajuan(widget.jenisSuratId);
+
       setState(() => _isSubmitting = false);
-      _showErrorDialog('Gagal mengirim pengajuan. Anda sedang offline atau server tidak aktif.');
+      _showOfflineSavedDialog();
       return;
     }
+
 
     try {
       // Tentukan URL: jika edit mode, gunakan endpoint update
@@ -1150,7 +1203,146 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
     );
   }
 
+  // ── OFFLINE SAVED DIALOG — Surat ─────────────────────────────
+  void _showOfflineSavedDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: '',
+      barrierColor: Colors.black.withOpacity(0.45),
+      transitionDuration: const Duration(milliseconds: 350),
+      transitionBuilder: (_, anim, __, child) => ScaleTransition(
+        scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      pageBuilder: (_, __, ___) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 40,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFf59e0b), Color(0xFFd97706)],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFd97706).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text('📥', style: TextStyle(fontSize: 34)),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Tersimpan Offline!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0f172a),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pengajuan "${widget.namaSurat}" disimpan di perangkat Anda.\nAkan otomatis dikirim saat koneksi internet kembali tersedia.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748b),
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfefce8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFfde68a)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text('🔄', style: TextStyle(fontSize: 16)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Sinkronisasi otomatis berjalan di latar belakang. Pastikan aplikasi tetap terpasang.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF92400e),
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context); // Tutup dialog
+                    Navigator.pop(context); // Kembali ke halaman surat
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFf59e0b), Color(0xFFd97706)],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFd97706).withOpacity(0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Lihat Riwayat Surat',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── SUCCESS DIALOG DISPLAY ─────────────────────────────────────
+
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -1425,7 +1617,7 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                 controller: _controllers[keyStr],
                 keyboardType: field.tipeField == 'number' ? TextInputType.number : TextInputType.text,
                 inputFormatters: _isNikField(field.namaField)
-                    ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)]
+                    ? [_ChunkedInputFormatter()]
                     : null,
                 style: const TextStyle(
                   fontSize: 14, 
@@ -1461,8 +1653,11 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                   if (field.isRequired && (val == null || val.trim().isEmpty)) {
                     return "Isian '${field.namaField}' wajib diisi.";
                   }
-                  if (_isNikField(field.namaField) && val != null && val.trim().length != 16) {
-                    return "NIK harus tepat 16 digit.";
+                  if (_isNikField(field.namaField) && val != null) {
+                    final clean = val.replaceAll(' ', '').trim();
+                    if (clean.length != 16) {
+                      return "${field.namaField} harus tepat 16 digit.";
+                    }
                   }
                   return null;
                 },
@@ -1986,6 +2181,53 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ChunkedInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) {
+      return newValue;
+    }
+    
+    final clean = text.replaceAll(RegExp(r'\D'), '');
+    final digits = clean.length > 16 ? clean.substring(0, 16) : clean;
+    
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 == 0) {
+        buffer.write(' ');
+      }
+      buffer.write(digits[i]);
+    }
+    
+    final formatted = buffer.toString();
+    
+    int offset = newValue.selection.end;
+    int cleanCharsBeforeCursor = text.substring(0, offset).replaceAll(RegExp(r'\D'), '').length;
+    
+    int formattedOffset = 0;
+    int digitCount = 0;
+    while (formattedOffset < formatted.length && digitCount < cleanCharsBeforeCursor) {
+      if (formatted[formattedOffset] != ' ') {
+        digitCount++;
+      }
+      formattedOffset++;
+    }
+    
+    if (formattedOffset < formatted.length && formatted[formattedOffset] == ' ') {
+      formattedOffset++;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formattedOffset),
     );
   }
 }

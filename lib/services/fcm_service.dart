@@ -36,7 +36,15 @@ class FcmService {
   factory FcmService() => _instance;
   FcmService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? get _messaging {
+    if (kIsWeb) return null;
+    try {
+      return FirebaseMessaging.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -57,65 +65,84 @@ class FcmService {
 
   Future<void> initialize() async {
     if (_initialized) return;
-
-    // 1. Buat notification channel di Android
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
-
-    // 2. Inisialisasi local notifications
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
-
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (details) {
-        debugPrint('FCM: Tap notification, payload: ${details.payload}');
-      },
-    );
-
-    // 3. Request izin notifikasi
-    final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-    debugPrint('FCM: Izin notifikasi: ${settings.authorizationStatus}');
-
-    // 4. Setup foreground message listener
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-
-    // 5. Setup notification tap handler (saat app di-background lalu di-tap)
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
-
-    // 6. Cek apakah app dibuka dari notification (terminated state)
-    final initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      _handleMessageOpenedApp(initialMessage);
+    if (kIsWeb) {
+      _initialized = true;
+      debugPrint('FCM: Skip inisialisasi di Web karena Firebase belum dikonfigurasi.');
+      return;
     }
 
-    _initialized = true;
-    debugPrint('FCM: Service berhasil diinisialisasi');
-    
-    // Ambil token secara otomatis saat inisialisasi agar selalu terpantau di log
-    await registerToken();
+    try {
+      final messaging = _messaging;
+      if (messaging == null) {
+        debugPrint('FCM: FirebaseMessaging tidak tersedia.');
+        return;
+      }
+
+      // 1. Buat notification channel di Android
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_channel);
+
+      // 2. Inisialisasi local notifications
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
+
+      await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (details) {
+          debugPrint('FCM: Tap notification, payload: ${details.payload}');
+        },
+      );
+
+      // 3. Request izin notifikasi
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+      debugPrint('FCM: Izin notifikasi: ${settings.authorizationStatus}');
+
+      // 4. Setup foreground message listener
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+
+      // 5. Setup notification tap handler (saat app di-background lalu di-tap)
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+
+      // 6. Cek apakah app dibuka dari notification (terminated state)
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleMessageOpenedApp(initialMessage);
+      }
+
+      _initialized = true;
+      debugPrint('FCM: Service berhasil diinisialisasi');
+      
+      // Ambil token secara otomatis saat inisialisasi agar selalu terpantau di log
+      await registerToken();
+    } catch (e) {
+      debugPrint('FCM: Gagal inisialisasi FCM: $e');
+    }
   }
 
   // ── Ambil & Kirim Token ke Backend ────────────────────────
 
   Future<void> registerToken() async {
+    if (kIsWeb) return;
     try {
-      final token = await _messaging.getToken();
+      final messaging = _messaging;
+      if (messaging == null) return;
+
+      final token = await messaging.getToken();
       if (token != null) {
         debugPrint('FCM Token Full: $token');
         await _sendTokenToServer(token);
       }
 
       // Listen token refresh (jika token berubah)
-      _messaging.onTokenRefresh.listen((newToken) {
+      messaging.onTokenRefresh.listen((newToken) {
         debugPrint('FCM Token refreshed: $newToken');
         _sendTokenToServer(newToken);
       });
@@ -205,8 +232,12 @@ class FcmService {
   // ── Hapus Token (saat Logout) ─────────────────────────────
 
   Future<void> removeToken() async {
+    if (kIsWeb) return;
     try {
-      await _messaging.deleteToken();
+      final messaging = _messaging;
+      if (messaging == null) return;
+
+      await messaging.deleteToken();
       debugPrint('FCM: Token dihapus (logout)');
     } catch (e) {
       debugPrint('FCM: Error hapus token: $e');

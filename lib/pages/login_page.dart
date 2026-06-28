@@ -70,9 +70,13 @@ class _LoginPageState extends State<LoginPage>
     if (isLogin && hasToken && mounted) {
       // Restore auth state, lalu init FCM
       await AuthService().checkLoginStatus();
-      final fcm = FcmService();
-      await fcm.initialize();
-      await fcm.registerToken();
+      try {
+        final fcm = FcmService();
+        await fcm.initialize();
+        await fcm.registerToken();
+      } catch (e) {
+        debugPrint("FCM initialization failed during checkLoginStatus: $e");
+      }
 
       Navigator.pushReplacement(
         context,
@@ -103,7 +107,7 @@ class _LoginPageState extends State<LoginPage>
 
     final authService = AuthService();
     final result = await authService.login(
-      _nikCtrl.text.trim(),
+      _nikCtrl.text.replaceAll(' ', '').trim(),
       _passCtrl.text.trim(),
     );
 
@@ -126,12 +130,16 @@ class _LoginPageState extends State<LoginPage>
     if (result.success) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_login', true);
-      await prefs.setString('nik', _nikCtrl.text.trim());
+      await prefs.setString('nik', _nikCtrl.text.replaceAll(' ', '').trim());
 
       // Inisialisasi FCM dan daftarkan token ke server
-      final fcm = FcmService();
-      await fcm.initialize();
-      await fcm.registerToken();
+      try {
+        final fcm = FcmService();
+        await fcm.initialize();
+        await fcm.registerToken();
+      } catch (e) {
+        debugPrint("FCM initialization failed during login: $e");
+      }
 
       Navigator.pushReplacement(
         context,
@@ -152,40 +160,75 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: const Color(0xFF113EAD), // Royal Blue Background from image
       body: Stack(
         children: [
+          // Background Decorative Circles
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.of(context).size.height * 0.42,
+            top: -60,
+            left: -60,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF0f2460),
-                    Color(0xFF1e40af),
-                    Color(0xFF2563eb),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -100,
+            right: -80,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            right: -80,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
               ),
             ),
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Column(
-                    children: [
-                      _buildTopSection(),
-                      _buildFormCard(),
-                    ],
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildTopSection(),
+                        _buildFormCard(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -199,7 +242,7 @@ class _LoginPageState extends State<LoginPage>
   // =====================================
   Widget _buildTopSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       child: Column(
         children: [
           Container(
@@ -226,7 +269,7 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           const Text(
             'Hutabulu Mejan',
@@ -240,14 +283,14 @@ class _LoginPageState extends State<LoginPage>
           const SizedBox(height: 8),
 
           Text(
-            'Masuk ke akun Anda',
+            'Masuk ke akun anda',
             style: TextStyle(
               color: Colors.white.withOpacity(0.85),
-              fontSize: 13,
+              fontSize: 14,
             ),
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -256,80 +299,99 @@ class _LoginPageState extends State<LoginPage>
   // =====================================
   Widget _buildFormCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(28, 32, 28, 36),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(36),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Selamat Datang 👋',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+            const Text(
+              'Selamat Datang',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
             ),
 
             const SizedBox(height: 6),
 
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Masukkan Nomor KK dan Password',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 13,
-                ),
+            const Text(
+              'Masukkan NIK dan Password Anda',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 13,
               ),
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
+
+            const Text(
+              'Nomor Kartu Keluarga',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+
+            const SizedBox(height: 8),
 
             TextFormField(
               controller: _nikCtrl,
               keyboardType: TextInputType.number,
-              maxLength: 16,
+              maxLength: 19,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
+                ChunkedInputFormatter(),
               ],
               decoration: _inputDecoration(
-                hint: 'Masukkan Nomor KK',
-                icon: Icons.badge,
+                hint: '123xxxxxxxxxxxxxx',
+                icon: Icons.person_outline,
                 counterText: '',
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) {
                   return 'Nomor KK wajib diisi';
                 }
-                if (v.length != 16) {
+                final clean = v.replaceAll(' ', '');
+                if (clean.length != 16) {
                   return 'Nomor KK harus 16 digit';
                 }
                 return null;
               },
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
+
+            const Text(
+              'Password',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+
+            const SizedBox(height: 8),
 
             TextFormField(
               controller: _passCtrl,
               obscureText: !_showPass,
               decoration: _inputDecoration(
                 hint: 'Masukkan Password',
-                icon: Icons.lock,
+                icon: Icons.lock_outline,
               ).copyWith(
                 suffixIcon: IconButton(
                   onPressed: () {
@@ -339,8 +401,9 @@ class _LoginPageState extends State<LoginPage>
                   },
                   icon: Icon(
                     _showPass
-                        ? Icons.visibility
-                        : Icons.visibility_off,
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
                   ),
                 ),
               ),
@@ -352,34 +415,37 @@ class _LoginPageState extends State<LoginPage>
               },
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 32),
 
-            GestureDetector(
-              onTap: _isLoading ? null : _login,
-              child: Container(
-                height: 52,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF1e40af),
-                      Color(0xFF2563eb),
-                    ],
+            Center(
+              child: GestureDetector(
+                onTap: _isLoading ? null : _login,
+                child: Container(
+                  height: 48,
+                  width: 170,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: const Color(0xFF133EAD),
                   ),
-                ),
-                child: Center(
-                  child: _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                      : const Text(
-                          'Masuk',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Masuk',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),
@@ -393,21 +459,83 @@ class _LoginPageState extends State<LoginPage>
   InputDecoration _inputDecoration({
     required String hint,
     required IconData icon,
-    String counterText = ' ',
+    String counterText = '',
   }) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
       counterText: counterText,
-      prefixIcon: Icon(icon),
+      prefixIcon: Icon(icon, color: Colors.black54),
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: const Color(0xFFE8EEF9),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFF113EAD), width: 2.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.red, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
+  }
+}
+
+class ChunkedInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) {
+      return newValue;
+    }
+    
+    final clean = text.replaceAll(RegExp(r'\D'), '');
+    final digits = clean.length > 16 ? clean.substring(0, 16) : clean;
+    
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 == 0) {
+        buffer.write(' ');
+      }
+      buffer.write(digits[i]);
+    }
+    
+    final formatted = buffer.toString();
+    
+    int offset = newValue.selection.end;
+    int cleanCharsBeforeCursor = text.substring(0, offset).replaceAll(RegExp(r'\D'), '').length;
+    
+    int formattedOffset = 0;
+    int digitCount = 0;
+    while (formattedOffset < formatted.length && digitCount < cleanCharsBeforeCursor) {
+      if (formatted[formattedOffset] != ' ') {
+        digitCount++;
+      }
+      formattedOffset++;
+    }
+    
+    if (formattedOffset < formatted.length && formatted[formattedOffset] == ' ') {
+      formattedOffset++;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formattedOffset),
     );
   }
 }

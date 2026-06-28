@@ -16,9 +16,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../api_config/api_config.dart';
 import './auth_service.dart';
 import '../models/pengajuan_model.dart';
+import '../utils/file_saver_helper.dart';
 
 class PdfService {
   static final PdfService _instance = PdfService._internal();
@@ -215,24 +217,24 @@ class PdfService {
             children: [
               pw.Text(
                 'PEMERINTAH KABUPATEN TOBA',
-                style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.black),
+                style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.black),
               ),
               pw.Text(
                 'KECAMATAN BALIGE',
-                style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.black),
+                style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.black),
               ),
               pw.Text(
                 'DESA HUTABULU MEJAN',
-                style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.black, letterSpacing: 0.5),
+                style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.black, letterSpacing: 0.5),
               ),
               pw.SizedBox(height: 2),
               pw.Text(
                 'Jl. Hutabulu Mejan, Kode Pos : 22312, Website : www.hutabulumejan.desa.id',
-                style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.black),
+                style: pw.TextStyle(font: fontRegular, fontSize: 10, color: PdfColors.black),
               ),
               pw.Text(
                 'www.desahutabulumejan.id',
-                style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.black),
+                style: pw.TextStyle(font: fontRegular, fontSize: 10, color: PdfColors.black),
               ),
             ],
           ),
@@ -476,11 +478,53 @@ class PdfService {
       if (response.statusCode == 200) {
         final bytes = response.bodyBytes;
         
+        // Deteksi nama file asli dari header Content-Disposition
+        String actualFilename = filename;
+        String? contentDisposition;
+        response.headers.forEach((key, val) {
+          if (key.toLowerCase() == 'content-disposition') {
+            contentDisposition = val;
+          }
+        });
+
+        if (contentDisposition != null) {
+          final regExp = RegExp(r'filename="?([^";\n]+)"?');
+          final match = regExp.firstMatch(contentDisposition!);
+          if (match != null && match.groupCount >= 1) {
+            actualFilename = match.group(1)!.replaceAll('"', '').trim();
+          }
+        }
+
+        // Deteksi tipe file dari ekstensi
+        final ext = actualFilename.split('.').last.toLowerCase();
+        final List<String> allowedExtensions = [ext];
+        if (ext == 'jpg' || ext == 'jpeg' || ext == 'png') {
+          allowedExtensions.addAll(['jpg', 'jpeg', 'png']);
+        } else if (ext == 'pdf') {
+          allowedExtensions.add('pdf');
+        } else {
+          allowedExtensions.add(ext);
+        }
+        
+        if (kIsWeb) {
+          await saveFileWeb(bytes, actualFilename);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Surat berhasil diunduh!'),
+                backgroundColor: Color(0xFF16a34a),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+
         final outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Pilih lokasi untuk menyimpan surat',
-          fileName: filename,
+          fileName: actualFilename,
           type: FileType.custom,
-          allowedExtensions: ['pdf'],
+          allowedExtensions: allowedExtensions,
           bytes: bytes,
         );
 

@@ -10,6 +10,16 @@ import '../models/pengaduan_model.dart';
 import 'auth_service.dart';
 import './offline_database_service.dart';
 
+/// Hasil pengiriman pengaduan
+enum PengaduanKirimResult {
+  /// Berhasil dikirim ke server
+  success,
+  /// Offline — data disimpan ke antrean, akan dikirim otomatis saat online
+  offlineQueued,
+  /// Gagal total (token tidak ada, error server yang tidak bisa di-queue)
+  failed,
+}
+
 class PengaduanService extends ChangeNotifier {
   static final PengaduanService _instance = PengaduanService._internal();
   factory PengaduanService() => _instance;
@@ -135,7 +145,7 @@ class PengaduanService extends ChangeNotifier {
     }
   }
 
-  Future<bool> kirimPengaduan({
+  Future<PengaduanKirimResult> kirimPengaduan({
     required String judul,
     required String deskripsi,
     required JenisPengaduan jenis,
@@ -143,7 +153,7 @@ class PengaduanService extends ChangeNotifier {
   }) async {
     final token = await _getAuthToken();
     if (token == null) {
-      return false;
+      return PengaduanKirimResult.failed;
     }
 
     final uri = Uri.parse('$baseUrl/pengaduan');
@@ -219,10 +229,41 @@ class PengaduanService extends ChangeNotifier {
       await OfflineDatabaseService().simpanPengaduan(cacheData);
 
       notifyListeners();
-      return true;
+      return PengaduanKirimResult.success;
     } catch (e) {
-      debugPrint('Gagal mengirim pengaduan karena offline: $e');
-      return false;
+      // Jika gagal karena jaringan, simpan ke antrean offline
+      debugPrint('PengaduanService: Gagal kirim ke server ($e). Menyimpan ke antrean offline...');
+
+      final jenisStr = PengaduanItem.jenisToString(jenis);
+      final offlinePayload = <String, dynamic>{
+        'judul': judul,
+        'deskripsi': deskripsi,
+        'jenis': jenisStr,
+        if (fotoPath != null && fotoPath.isNotEmpty) 'fotoPath': fotoPath,
+      };
+
+      await OfflineDatabaseService().tambahKeSyncQueue(
+        action: 'tambah_pengaduan',
+        payload: offlinePayload,
+      );
+
+      // Tambahkan item pending ke list agar langsung terlihat di UI
+      final pendingId = 'SYNC-PDG-${DateTime.now().millisecondsSinceEpoch}';
+      _list.insert(
+        0,
+        PengaduanItem(
+          id: pendingId,
+          judul: judul,
+          deskripsi: deskripsi,
+          jenis: jenis,
+          tanggalAjuan: DateTime.now(),
+          fotoPath: fotoPath,
+          status: StatusPengaduan.menunggu,
+          catatanAdmin: 'Menunggu sinkronisasi internet... 🔄',
+        ),
+      );
+      notifyListeners();
+      return PengaduanKirimResult.offlineQueued;
     }
   }
 

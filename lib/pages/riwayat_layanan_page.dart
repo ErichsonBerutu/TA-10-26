@@ -480,9 +480,9 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                            icon: const Icon(Icons.description_rounded, size: 16),
                             label: const Text(
-                              'Buka & Cetak PDF',
+                              'Lihat Surat Saya',
                               style: TextStyle(
                                   fontWeight: FontWeight.w800, fontSize: 12),
                             ),

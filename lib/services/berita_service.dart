@@ -86,20 +86,24 @@ class BeritaService extends ChangeNotifier {
   /// Muat data berita dari server.
   /// Endpoint publik — tidak perlu token auth.
   Future<void> muatBerita({bool forceRefresh = false}) async {
-    // 1. Ambil dari database lokal terlebih dahulu (Local-First Read)
-    if (_daftar.isEmpty || forceRefresh) {
-      final localData = await OfflineDatabaseService().ambilBerita();
-      if (localData.isNotEmpty) {
-        _daftar.clear();
-        for (final item in localData) {
-          _daftar.add(BeritaItem.fromJson(item));
+    // Di Flutter Web, skip cache lokal dan langsung fetch dari server.
+    // localStorage browser bisa menyimpan data lama yang memblokir network request.
+    if (!kIsWeb) {
+      // 1. Ambil dari database lokal terlebih dahulu (Local-First Read — hanya Native)
+      if (_daftar.isEmpty || forceRefresh) {
+        final localData = await OfflineDatabaseService().ambilBerita();
+        if (localData.isNotEmpty) {
+          _daftar.clear();
+          for (final item in localData) {
+            _daftar.add(BeritaItem.fromJson(item));
+          }
+          notifyListeners();
         }
-        notifyListeners();
       }
-    }
 
-    // Jika sudah ada data di memori dan tidak dipaksa refresh, skip pemanggilan jaringan
-    if (_daftar.isNotEmpty && !forceRefresh) return;
+      // Jika sudah ada data di memori dan tidak dipaksa refresh, skip pemanggilan jaringan
+      if (_daftar.isNotEmpty && !forceRefresh) return;
+    }
 
     _isLoading = true;
     _hasError = false;

@@ -67,7 +67,7 @@ class AuthService extends ChangeNotifier {
           "nik": nik,
           "password": password,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -199,7 +199,7 @@ class AuthService extends ChangeNotifier {
               updatedUser.tanggalLahir?.toIso8601String() ?? "",
           "no_kk": updatedUser.noKk,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         _currentUser = updatedUser;

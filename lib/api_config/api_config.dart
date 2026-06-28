@@ -1,16 +1,16 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Hanya import dart:io jika bukan Web (dart:io tidak tersedia di Flutter Web)
+import 'api_config_stub.dart'
+    if (dart.library.io) 'api_config_native.dart' as NativeConfig;
 
 class ApiConfig {
   static String get baseUrl {
-    if (Platform.isAndroid) {
-      // Menggunakan IP lokal laptop yang aktif saat ini agar HP Android fisik dapat terhubung
-      return "http://10.79.214.25:8000/api";
-    } else if (Platform.isIOS) {
-      // Simulator iOS di laptop bisa langsung membaca localhost
-      return "http://localhost:8000/api";
-    } else {
-      // Untuk platform lain seperti Chrome/Web atau Desktop
+    if (kIsWeb) {
+      // Flutter Web: gunakan URL relatif atau localhost backend
       return "http://localhost:8000/api";
     }
+    // Delegasi ke helper native (Android/iOS/Desktop)
+    return NativeConfig.nativeBaseUrl;
   }
 }

@@ -52,6 +52,9 @@ dependencies:
   # Getaran & Haptic feedback untuk notifikasi real-time
   vibration: ^2.0.1
 
+  # Monitoring koneksi internet secara real-time (untuk mode offline)
+  connectivity_plus: ^6.1.4
+
 
 dev_dependencies:
   flutter_test:
