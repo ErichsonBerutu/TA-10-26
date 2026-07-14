@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/notifikasi_service.dart';
+import '../utils/responsive_layout.dart';
 
 // ============================================================
 //  HALAMAN — Notifikasi (sync dari server backend)
@@ -80,24 +81,27 @@ class _NotifikasiPageState extends State<NotifikasiPage> {
       body: AnimatedBuilder(
         animation: _svc,
         builder: (context, _) {
+          Widget mainContent;
           if (!_svc.isLoaded) {
-            return const Center(
+            mainContent = const Center(
               child: CircularProgressIndicator(color: Color(0xFF1e40af)),
             );
+          } else if (_svc.notifikasi.isEmpty) {
+            mainContent = _buildEmpty();
+          } else {
+            mainContent = RefreshIndicator(
+              onRefresh: () => _fetch(force: true),
+              color: const Color(0xFF1e40af),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _svc.notifikasi.length,
+                itemBuilder: (context, i) => _buildItem(_svc.notifikasi[i]),
+              ),
+            );
           }
-
-          if (_svc.notifikasi.isEmpty) {
-            return _buildEmpty();
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => _fetch(force: true),
-            color: const Color(0xFF1e40af),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _svc.notifikasi.length,
-              itemBuilder: (context, i) => _buildItem(_svc.notifikasi[i]),
-            ),
+          return ResponsiveLayout(
+            maxWidth: 750,
+            child: mainContent,
           );
         },
       ),

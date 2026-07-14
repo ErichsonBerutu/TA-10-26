@@ -5,6 +5,7 @@ import '../models/respons_model.dart';
 import '../services/auth_service.dart';
 import '../api_config/api_config.dart';
 import '../widgets/custom_cached_image.dart';
+import '../utils/responsive_layout.dart';
 
 class PengaduanDetailPage extends StatefulWidget {
   final PengaduanItem pengaduan;
@@ -115,9 +116,11 @@ class _PengaduanDetailPageState extends State<PengaduanDetailPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: ResponsiveLayout(
+            maxWidth: 750,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // ── Status Banner ──
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -393,6 +396,7 @@ class _PengaduanDetailPageState extends State<PengaduanDetailPage> {
           ),
         ),
       ),
+    ),
     );
   }
 

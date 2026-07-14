@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../utils/responsive_layout.dart';
 
 import 'beranda_page.dart';
 import 'pengaduan_page.dart';
@@ -116,12 +117,15 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 30),
-                child: Column(
-                  children: [
-                    _buildProfileCard(user),
-                    _buildInfoSection(user),
-                    _buildLogoutButton(),
-                  ],
+                child: ResponsiveLayout(
+                  maxWidth: 700,
+                  child: Column(
+                    children: [
+                      _buildProfileCard(user),
+                      _buildInfoSection(user),
+                      _buildLogoutButton(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -147,19 +151,22 @@ class _ProfilePageState extends State<ProfilePage> {
           colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
         ),
       ),
-      child: const Row(
-        children: [
-          Icon(Icons.person, color: Colors.white),
-          SizedBox(width: 10),
-          Text(
-            'Profil Saya',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+      child: ResponsiveLayout(
+        maxWidth: 700,
+        child: const Row(
+          children: [
+            Icon(Icons.person, color: Colors.white),
+            SizedBox(width: 10),
+            Text(
+              'Profil Saya',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

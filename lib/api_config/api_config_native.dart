@@ -27,9 +27,9 @@ String get nativeBaseUrl {
     return 'http://10.51.70.25:8000/api';
   } else if (Platform.isIOS) {
     // Simulator iOS bisa langsung pakai localhost
-    return 'http://localhost:8000/api';
+    return 'https://desahutabulumejan.id/api';
   } else {
     // Desktop (Windows/Linux/macOS)
-    return 'http://localhost:8000/api';
+    return 'https://desahutabulumejan.id/api';
   }
 }

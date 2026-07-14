@@ -7,6 +7,8 @@ import '../models/respons_model.dart';
 import '../services/respons_service.dart';
 import '../api_config/api_config.dart';
 import '../widgets/custom_cached_image.dart';
+import '../utils/responsive_layout.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // ============================================================
 //  HALAMAN — Detail Pengaduan (Lihat Respons Admin)
@@ -54,7 +56,9 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
         title: const Text('Detail Pengaduan'),
         elevation: 0,
       ),
-      body: ListView(
+      body: ResponsiveLayout(
+        maxWidth: 750,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── Card Status ────────────────────────────────
@@ -269,6 +273,7 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
           const SizedBox(height: 24),
         ],
       ),
+      ),
     );
   }
 
@@ -348,6 +353,15 @@ class _DetailPengaduanPageState extends State<DetailPengaduanPage> {
     return '${tanggal.day}/${tanggal.month}/${tanggal.year} $hourStr:$minuteStr';
   }
   Widget _buildImageWidget(String path) {
+    if (kIsWeb) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => const Center(
+          child: Icon(Icons.broken_image_rounded, color: Colors.red, size: 40),
+        ),
+      );
+    }
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return CustomCachedImage(
         imageUrl: path,

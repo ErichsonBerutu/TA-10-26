@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import '../services/fcm_service.dart';
+import '../utils/responsive_layout.dart';
 import 'beranda_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -221,13 +222,16 @@ class _LoginPageState extends State<LoginPage>
                   opacity: _fadeAnim,
                   child: SlideTransition(
                     position: _slideAnim,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildTopSection(),
-                        _buildFormCard(),
-                        const SizedBox(height: 20),
-                      ],
+                    child: ResponsiveLayout(
+                      maxWidth: 480,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildTopSection(),
+                          _buildFormCard(),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/offline_database_service.dart';
 import '../services/respons_service.dart';
 import 'form_pengajuan_surat_page.dart';
+import '../utils/responsive_layout.dart';
 
 // ============================================================
 //  HALAMAN — Detail Pengajuan (Lihat Respons Admin)
@@ -152,7 +153,9 @@ class _DetailPengajuanPageState extends State<DetailPengajuanPage> {
         title: Text('Detail Pengajuan ${widget.pengajuan.jenisSurat}'),
         elevation: 0,
       ),
-      body: ListView(
+      body: ResponsiveLayout(
+        maxWidth: 750,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── Card Status ────────────────────────────────
@@ -453,6 +456,7 @@ class _DetailPengajuanPageState extends State<DetailPengajuanPage> {
           ],
           const SizedBox(height: 16),
         ],
+      ),
       ),
     );
   }

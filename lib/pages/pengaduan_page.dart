@@ -29,6 +29,9 @@ import 'beranda_page.dart';
 import 'pengumuman_page.dart';
 import 'profile_page.dart';
 import 'surat_page.dart';
+import '../utils/responsive_layout.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../api_config/api_config.dart';
 
 // ============================================================
 //  DATA JENIS PENGADUAN
@@ -92,6 +95,30 @@ class PengaduanPage extends StatefulWidget {
 
 class _PengaduanPageState extends State<PengaduanPage> {
   final _service = PengaduanService();
+
+  String _resolveFotoUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    final baseDomain = ApiConfig.baseUrl.replaceAll('/api', '');
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return '$baseDomain/$cleanPath';
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFFf1f5f9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.broken_image_rounded,
+          color: Color(0xFF94a3b8),
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -198,13 +225,16 @@ class _PengaduanPageState extends State<PengaduanPage> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: ResponsiveLayout(
+                  maxWidth: 800,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     _buildInfoBanner(),
                     _buildJenisSection(),
                     _buildRiwayatSection(),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -235,8 +265,10 @@ class _PengaduanPageState extends State<PengaduanPage> {
           ),
         ],
       ),
-      child: Row(
-        children: [
+      child: ResponsiveLayout(
+        maxWidth: 800,
+        child: Row(
+          children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -274,7 +306,8 @@ class _PengaduanPageState extends State<PengaduanPage> {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -609,24 +642,36 @@ class _PengaduanPageState extends State<PengaduanPage> {
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.file(
-                File(p.fotoPath!),
-                height: 130,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFf1f5f9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.broken_image_rounded,
-                      color: Color(0xFF94a3b8),
-                    ),
-                  ),
-                ),
+              child: Builder(
+                builder: (context) {
+                  final path = p.fotoPath!;
+                  if (kIsWeb || path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+                    return Image.network(
+                      path,
+                      height: 130,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildFallbackImage(),
+                    );
+                  } else if (path.startsWith('storage/') || path.startsWith('uploads/') || !path.contains('/')) {
+                    final resolvedUrl = _resolveFotoUrl(path);
+                    return Image.network(
+                      resolvedUrl,
+                      height: 130,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildFallbackImage(),
+                    );
+                  } else {
+                    return Image.file(
+                      File(path),
+                      height: 130,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _buildFallbackImage(),
+                    );
+                  }
+                },
               ),
             ),
           ],
@@ -1235,8 +1280,10 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
                   ),
                 ],
               ),
-              child: Row(
-                children: [
+              child: ResponsiveLayout(
+                maxWidth: 750,
+                child: Row(
+                  children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -1279,7 +1326,8 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
                       ],
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -1288,9 +1336,11 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                 child: Form(
                   key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  child: ResponsiveLayout(
+                    maxWidth: 750,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       // Chip kategori
                       Container(
                         padding: const EdgeInsets.all(14),
@@ -1438,7 +1488,8 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
                           ),
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1461,12 +1512,19 @@ class _FormPengaduanPageState extends State<FormPengaduanPage> {
             borderRadius: BorderRadius.circular(16),
             child: Stack(
               children: [
-                Image.file(
-                  File(_fotoPath!),
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
+                kIsWeb || _fotoPath!.startsWith('http://') || _fotoPath!.startsWith('https://') || _fotoPath!.startsWith('blob:')
+                    ? Image.network(
+                        _fotoPath!,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.file(
+                        File(_fotoPath!),
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
                 // Badge sukses
                 Positioned(
                   top: 10,

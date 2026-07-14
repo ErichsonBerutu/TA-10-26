@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../services/offline_database_service.dart';
 import 'beranda_page.dart' show BerandaPage;
+import '../utils/responsive_layout.dart';
 import 'pengaduan_page.dart';
 import 'pengumuman_page.dart';
 import 'profile_page.dart';
@@ -165,13 +166,16 @@ class _SuratPageState extends State<SuratPage> {
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBanner(),
-                      _buildUnifiedSectionHeader(),
-                      _buildUnifiedSuratGrid(),
-                    ],
+                  child: ResponsiveLayout(
+                    maxWidth: 800,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildBanner(),
+                        _buildUnifiedSectionHeader(),
+                        _buildUnifiedSuratGrid(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -300,11 +304,11 @@ class _SuratPageState extends State<SuratPage> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _dynamicSurat.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 4 : 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 0.95,
+          childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 1.15 : 0.95,
         ),
         itemBuilder: (_, i) => _buildSuratCard(_dynamicSurat[i]),
       ),
@@ -464,34 +468,37 @@ class _SuratPageState extends State<SuratPage> {
           colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
         ),
       ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+      child: ResponsiveLayout(
+        maxWidth: 800,
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Layanan Surat',
+              style: TextStyle(
                 color: Colors.white,
-                size: 16,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Layanan Surat',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 17,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

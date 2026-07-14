@@ -8,6 +8,7 @@ import 'pengaduan_page.dart';
 import 'profile_page.dart';
 import 'surat_page.dart';
 import '../widgets/custom_cached_image.dart';
+import '../utils/responsive_layout.dart';
 
 // ============================================================
 //  HALAMAN PENGUMUMAN — Terhubung ke Backend API
@@ -130,7 +131,12 @@ class _PengumumanPageState extends State<PengumumanPage>
         child: Column(
           children: [
             _buildHeader(),
-            Expanded(child: _buildBody()),
+            Expanded(
+              child: ResponsiveLayout(
+                maxWidth: 750,
+                child: _buildBody(),
+              ),
+            ),
           ],
         ),
       ),
@@ -157,8 +163,10 @@ class _PengumumanPageState extends State<PengumumanPage>
               color: Color(0x661e40af), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
-      child: Row(
-        children: [
+      child: ResponsiveLayout(
+        maxWidth: 750,
+        child: Row(
+          children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -209,6 +217,7 @@ class _PengumumanPageState extends State<PengumumanPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

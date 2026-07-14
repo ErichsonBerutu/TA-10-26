@@ -8,7 +8,7 @@ class ApiConfig {
   static String get baseUrl {
     if (kIsWeb) {
       // Flutter Web: gunakan URL relatif atau localhost backend
-      return "http://localhost:8000/api";
+      return "https://desahutabulumejan.id/api";
     }
     // Delegasi ke helper native (Android/iOS/Desktop)
     return NativeConfig.nativeBaseUrl;

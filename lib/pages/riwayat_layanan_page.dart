@@ -20,6 +20,8 @@ import 'pdf_preview_page.dart';
 import 'pengaduan_detail_page.dart';
 import '../widgets/custom_cached_image.dart';
 import 'detail_pengajuan_page.dart';
+import '../utils/responsive_layout.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class RiwayatLayananPage extends StatefulWidget {
   const RiwayatLayananPage({super.key});
@@ -102,8 +104,8 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildSuratTab(),
-                  _buildPengaduanTab(),
+                  ResponsiveLayout(maxWidth: 800, child: _buildSuratTab()),
+                  ResponsiveLayout(maxWidth: 800, child: _buildPengaduanTab()),
                 ],
               ),
             ),
@@ -132,8 +134,10 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
           ),
         ],
       ),
-      child: Row(
-        children: [
+      child: ResponsiveLayout(
+        maxWidth: 800,
+        child: Row(
+          children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -177,7 +181,8 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -188,8 +193,10 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: TabBar(
-        controller: _tabController,
+      child: ResponsiveLayout(
+        maxWidth: 800,
+        child: TabBar(
+          controller: _tabController,
         indicatorColor: const Color(0xFF2563eb),
         indicatorSize: TabBarIndicatorSize.label,
         indicatorWeight: 3.5,
@@ -226,6 +233,7 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -772,23 +780,32 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(11),
-        child: isLocalFile
-            ? Image.file(
-                File(path),
+        child: kIsWeb
+            ? Image.network(
+                path,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const Center(
                   child: Icon(Icons.broken_image_rounded,
                       color: Color(0xFF94a3b8), size: 36),
                 ),
               )
-            : CustomCachedImage(
-                imageUrl: fullUrl,
-                fit: BoxFit.cover,
-                errorWidget: const Center(
-                  child: Icon(Icons.broken_image_rounded,
-                      color: Color(0xFF94a3b8), size: 36),
-                ),
-              ),
+            : (isLocalFile
+                ? Image.file(
+                    File(path),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image_rounded,
+                          color: Color(0xFF94a3b8), size: 36),
+                    ),
+                  )
+                : CustomCachedImage(
+                    imageUrl: fullUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: const Center(
+                      child: Icon(Icons.broken_image_rounded,
+                          color: Color(0xFF94a3b8), size: 36),
+                    ),
+                  )),
       ),
     );
   }

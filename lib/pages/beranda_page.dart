@@ -18,6 +18,7 @@ import 'pengaduan_page.dart';
 import 'profile_page.dart';
 import 'riwayat_layanan_page.dart';
 import '../widgets/custom_cached_image.dart';
+import '../utils/responsive_layout.dart';
 
 // ============================================================
 //  MODEL DATA
@@ -945,16 +946,19 @@ class _BerandaPageState extends State<BerandaPage>
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 90),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!_isOnline) _buildOfflineBanner(),
-                      _buildWelcomeBanner(),
-                      _buildCarousel(),
-                      _buildDots(),
-                      _buildLayananSection(),
-                      _buildPengumumanSection(),
-                    ],
+                  child: ResponsiveLayout(
+                    maxWidth: 800,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!_isOnline) _buildOfflineBanner(),
+                        _buildWelcomeBanner(),
+                        _buildCarousel(),
+                        _buildDots(),
+                        _buildLayananSection(),
+                        _buildPengumumanSection(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -992,8 +996,10 @@ class _BerandaPageState extends State<BerandaPage>
             ),
           ],
         ),
-        child: Row(
-          children: [
+        child: ResponsiveLayout(
+          maxWidth: 800,
+          child: Row(
+            children: [
             Row(
               children: [
                 AnimatedBuilder(
@@ -1106,6 +1112,7 @@ class _BerandaPageState extends State<BerandaPage>
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1940,12 +1947,12 @@ class _BerandaPageState extends State<BerandaPage>
           ),
           const SizedBox(height: 12),
           GridView.count(
-            crossAxisCount: 2,
+            crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 2.4,
+            childAspectRatio: MediaQuery.of(context).size.width >= 600 ? 3.0 : 2.4,
             children: List.generate(
               layananList.length,
               (i) => _buildLayananCard(layananList[i], i),

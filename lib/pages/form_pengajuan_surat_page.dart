@@ -13,6 +13,8 @@ import '../models/pengajuan_model.dart';
 import '../services/pengajuan_service.dart' as pengajuan_service;
 import '../services/offline_database_service.dart';
 import '../services/sync_service.dart';
+import '../utils/responsive_layout.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class FormPengajuanSuratPage extends StatefulWidget {
   final int jenisSuratId;
@@ -1758,10 +1760,15 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File((_answers[keyStr] as XFile).path),
-                        fit: BoxFit.cover,
-                      ),
+                      child: kIsWeb
+                          ? Image.network(
+                              (_answers[keyStr] as XFile).path,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              File((_answers[keyStr] as XFile).path),
+                              fit: BoxFit.cover,
+                            ),
                     ),
                   ),
                   // Tombol Hapus Gambar Terpilih
@@ -1944,37 +1951,40 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 16,
+      child: ResponsiveLayout(
+        maxWidth: 750,
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              widget.namaSurat,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.namaSurat,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2148,32 +2158,35 @@ class _FormPengajuanSuratPageState extends State<FormPengajuanSuratPage> {
                           key: _formKey,
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFormBanner(),
-                                const SizedBox(height: 20),
-                                if (_persyaratan.isEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.all(24),
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'Tidak ada persyaratan khusus untuk surat ini.\nAnda dapat langsung mengirim permohonan.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Color(0xFF64748b), fontSize: 13, height: 1.5),
+                            child: ResponsiveLayout(
+                              maxWidth: 750,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildFormBanner(),
+                                  const SizedBox(height: 20),
+                                  if (_persyaratan.isEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.all(24),
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
-                                    ),
-                                  )
-                                else
-                                  ..._persyaratan.map((f) => _buildField(f)),
-                                const SizedBox(height: 12),
-                                _buildSubmitButton(),
-                              ],
+                                      child: const Center(
+                                        child: Text(
+                                          'Tidak ada persyaratan khusus untuk surat ini.\nAnda dapat langsung mengirim permohonan.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: Color(0xFF64748b), fontSize: 13, height: 1.5),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    ..._persyaratan.map((f) => _buildField(f)),
+                                  const SizedBox(height: 12),
+                                  _buildSubmitButton(),
+                                ],
+                              ),
                             ),
                           ),
                         ),
