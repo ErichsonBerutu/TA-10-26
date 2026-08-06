@@ -1063,49 +1063,73 @@ class _BerandaPageState extends State<BerandaPage>
             const Spacer(),
             Row(
               children: [
-                GestureDetector(
-                  onTap: _showInfoDialog,
-                  child: _headerGlassBtn(Icons.info_outline_rounded),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _toggleNotif,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      _headerGlassBtn(
-                        Icons.notifications_none_rounded,
+                Semantics(
+                  label: 'Informasi Desa',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: _showInfoDialog,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: _headerGlassBtn(Icons.info_outline_rounded),
                       ),
-                      if (_notifSvc.jumlahBelumDibaca > 0)
-                        Positioned(
-                          right: -3,
-                          top: -3,
-                          child: Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFef4444),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF1e40af),
-                                width: 2,
-                              ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Semantics(
+                  label: _notifSvc.jumlahBelumDibaca > 0
+                      ? 'Notifikasi, ${_notifSvc.jumlahBelumDibaca} belum dibaca'
+                      : 'Notifikasi',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: _toggleNotif,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _headerGlassBtn(
+                              Icons.notifications_none_rounded,
                             ),
-                            child: Center(
-                              child: Text(
-                                _notifSvc.jumlahBelumDibaca > 9
-                                    ? '9+'
-                                    : '${_notifSvc.jumlahBelumDibaca}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
+                            if (_notifSvc.jumlahBelumDibaca > 0)
+                              Positioned(
+                                right: -3,
+                                top: -3,
+                                child: Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFef4444),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF1e40af),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _notifSvc.jumlahBelumDibaca > 9
+                                          ? '9+'
+                                          : '${_notifSvc.jumlahBelumDibaca}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
+                          ],
                         ),
-                    ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1318,19 +1342,19 @@ class _BerandaPageState extends State<BerandaPage>
                 ),
               ),
               Positioned(
-                left: 10,
+                left: 4,
                 top: 0,
                 bottom: 0,
                 child: Center(
-                  child: _carouselBtn(Icons.chevron_left_rounded, _prevSlide),
+                  child: _carouselBtn(Icons.chevron_left_rounded, _prevSlide, 'Slide Sebelumnya'),
                 ),
               ),
               Positioned(
-                right: 10,
+                right: 4,
                 top: 0,
                 bottom: 0,
                 child: Center(
-                  child: _carouselBtn(Icons.chevron_right_rounded, _nextSlide),
+                  child: _carouselBtn(Icons.chevron_right_rounded, _nextSlide, 'Slide Berikutnya'),
                 ),
               ),
               // Bottom label (IgnorePointer agar tap menembus ke gambar berita)
@@ -1869,18 +1893,29 @@ class _BerandaPageState extends State<BerandaPage>
     );
   }
 
-  Widget _carouselBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.25),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.35)),
+  Widget _carouselBtn(IconData icon, VoidCallback onTap, String label) {
+    return Semantics(
+      label: label,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.35)),
+              ),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+          ),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -1893,7 +1928,7 @@ class _BerandaPageState extends State<BerandaPage>
     final items = _carouselItems;
     if (items.isEmpty) return const SizedBox();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(items.length, (i) {
@@ -1904,20 +1939,31 @@ class _BerandaPageState extends State<BerandaPage>
           } else {
             accent = const Color(0xFF2563eb);
           }
-          return GestureDetector(
-            onTap: () => _goToSlide(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOutCubic,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: active ? 22 : 7,
-              height: 7,
-              decoration: BoxDecoration(
-                color: active ? accent : const Color(0xFFcbd5e1),
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: active
-                    ? [BoxShadow(color: accent.withOpacity(0.4), blurRadius: 6)]
-                    : null,
+          return Semantics(
+            label: 'Slide ${i + 1} dari ${items.length}',
+            button: true,
+            selected: active,
+            child: GestureDetector(
+              onTap: () => _goToSlide(i),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeInOutCubic,
+                    width: active ? 22 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: active ? accent : const Color(0xFFcbd5e1),
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: active
+                          ? [BoxShadow(color: accent.withOpacity(0.4), blurRadius: 6)]
+                          : null,
+                    ),
+                  ),
+                ),
               ),
             ),
           );
@@ -1968,57 +2014,69 @@ class _BerandaPageState extends State<BerandaPage>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0f172a),
-                letterSpacing: -0.2,
-              ),
-            ),
-            if (subtitle.isNotEmpty) ...[
-              const SizedBox(height: 1),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                subtitle,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0f172a),
+                  letterSpacing: -0.2,
+                ),
               ),
-            ],
-          ],
-        ),
-        GestureDetector(
-          onTap:
-              onTap ??
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PengumumanPage()),
-              ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1e3a8a), Color(0xFF2563eb)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2563eb).withOpacity(0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
+              if (subtitle.isNotEmpty) ...[
+                const SizedBox(height: 1),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
                 ),
               ],
-            ),
-            child: const Text(
-              'Lihat Semua',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+            ],
+          ),
+        ),
+        Semantics(
+          label: 'Lihat semua $title',
+          button: true,
+          child: GestureDetector(
+            onTap:
+                onTap ??
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PengumumanPage()),
+                ),
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              height: 48,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1e3a8a), Color(0xFF2563eb)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563eb).withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'Lihat Semua',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -2032,61 +2090,65 @@ class _BerandaPageState extends State<BerandaPage>
         _layananGradients[index] ?? [item.color.withOpacity(0.7), item.color];
     final icon = _layananIcons[index] ?? Icons.apps_rounded;
     final isPressed = _pressedLayanan == index;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressedLayanan = index),
-      onTapUp: (_) {
-        setState(() => _pressedLayanan = null);
-        _onLayananTap(item, index);
-      },
-      onTapCancel: () => setState(() => _pressedLayanan = null),
-      child: AnimatedScale(
-        scale: isPressed ? 0.94 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFf8fafc),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFe2eafc),
-              width: 1,
+    return Semantics(
+      label: 'Menu Layanan ${item.label}',
+      button: true,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressedLayanan = index),
+        onTapUp: (_) {
+          setState(() => _pressedLayanan = null);
+          _onLayananTap(item, index);
+        },
+        onTapCancel: () => setState(() => _pressedLayanan = null),
+        child: AnimatedScale(
+          scale: isPressed ? 0.94 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFf8fafc),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFe2eafc),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1e40af).withOpacity(0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1e40af).withOpacity(0.02),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: gradColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: gradColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  child: Icon(icon, color: Colors.white, size: 18),
                 ),
-                child: Icon(icon, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.label,
-                  style: const TextStyle(
-                    color: Color(0xFF1d4ed8),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12.5,
-                    height: 1.2,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.label,
+                    style: const TextStyle(
+                      color: Color(0xFF1d4ed8),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12.5,
+                      height: 1.2,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

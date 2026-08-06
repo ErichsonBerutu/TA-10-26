@@ -167,36 +167,50 @@ class _PengumumanPageState extends State<PengumumanPage>
         maxWidth: 750,
         child: Row(
           children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          Semantics(
+            label: 'Kembali',
+            button: true,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 18),
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pengumuman',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18),
-                ),
-                Text('Informasi terkini dari desa',
-                    style: TextStyle(color: Color(0x99ffffff), fontSize: 11)),
-              ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pengumuman',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18),
+                  ),
+                  Text('Informasi terkini dari desa',
+                      style: TextStyle(color: Color(0x99ffffff), fontSize: 11)),
+                ],
+              ),
             ),
           ),
           // Badge jumlah
@@ -644,37 +658,51 @@ class _DetailPengumumanPage extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2)),
+                  Semantics(
+                    label: 'Kembali ke daftar pengumuman',
+                    button: true,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      behavior: HitTestBehavior.opaque,
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2)),
+                            ),
+                            child: const Icon(Icons.arrow_back_ios_new_rounded,
+                                color: Colors.white, size: 18),
+                          ),
+                        ),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white, size: 18),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Detail Pengumuman',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18),
-                        ),
-                        Text('Informasi lengkap',
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Detail Pengumuman',
                             style: TextStyle(
-                                color: Color(0x99ffffff), fontSize: 11)),
-                      ],
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18),
+                          ),
+                          Text('Informasi lengkap',
+                              style: TextStyle(
+                                  color: Color(0x99ffffff), fontSize: 11)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -750,58 +778,63 @@ class _DetailPengumumanPage extends StatelessWidget {
                       // Gambar (jika ada)
                       if (data.gambarUrl != null &&
                           data.gambarUrl!.isNotEmpty) ...[
-                        GestureDetector(
-                          onTap: () =>
-                              _bukaGambarFull(context, data.gambarUrl!),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  CustomCachedImage(
-                                    imageUrl: data.gambarUrl!,
-                                    fit: BoxFit.cover,
-                                    errorWidget: Container(
-                                      color: const Color(0xFFe2e8f0),
-                                      child: const Center(
-                                        child: Icon(
-                                            Icons.broken_image_rounded,
-                                            color: Color(0xFF94a3b8),
-                                            size: 34),
+                        Semantics(
+                          label: 'Foto pengumuman ${data.judul}. Ketuk untuk memperbesar',
+                          button: true,
+                          child: GestureDetector(
+                            onTap: () =>
+                                _bukaGambarFull(context, data.gambarUrl!),
+                            behavior: HitTestBehavior.opaque,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    CustomCachedImage(
+                                      imageUrl: data.gambarUrl!,
+                                      fit: BoxFit.cover,
+                                      errorWidget: Container(
+                                        color: const Color(0xFFe2e8f0),
+                                        child: const Center(
+                                          child: Icon(
+                                              Icons.broken_image_rounded,
+                                              color: Color(0xFF94a3b8),
+                                              size: 34),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Positioned(
-                                    right: 10,
-                                    bottom: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.45),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.zoom_in_rounded,
-                                              color: Colors.white, size: 13),
-                                          SizedBox(width: 4),
-                                          Text('Tap untuk zoom',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight:
-                                                      FontWeight.w600)),
-                                        ],
+                                    Positioned(
+                                      right: 10,
+                                      bottom: 10,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.45),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.zoom_in_rounded,
+                                                color: Colors.white, size: 13),
+                                            SizedBox(width: 4),
+                                            Text('Tap untuk zoom',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -823,40 +856,45 @@ class _DetailPengumumanPage extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Tombol kembali
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563eb)
-                                    .withValues(alpha: 0.25),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                      Semantics(
+                        label: 'Tutup detail pengumuman',
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
                               ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.arrow_back_rounded,
-                                    color: Colors.white, size: 17),
-                                SizedBox(width: 7),
-                                Text(
-                                  'Kembali',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563eb)
+                                      .withValues(alpha: 0.25),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
+                            ),
+                            child: const Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.arrow_back_rounded,
+                                      color: Colors.white, size: 17),
+                                  SizedBox(width: 7),
+                                  Text(
+                                    'Kembali',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

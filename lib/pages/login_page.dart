@@ -333,7 +333,7 @@ class _LoginPageState extends State<LoginPage>
             const SizedBox(height: 6),
 
             const Text(
-              'Masukkan NIK dan Password Anda',
+              'Masukkan Nomor KK dan Password Anda',
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: 13,

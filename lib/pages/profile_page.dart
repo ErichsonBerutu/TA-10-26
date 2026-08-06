@@ -153,19 +153,22 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: ResponsiveLayout(
         maxWidth: 700,
-        child: const Row(
-          children: [
-            Icon(Icons.person, color: Colors.white),
-            SizedBox(width: 10),
-            Text(
-              'Profil Saya',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+        child: Semantics(
+          header: true,
+          child: const Row(
+            children: [
+              Icon(Icons.person, color: Colors.white),
+              SizedBox(width: 10),
+              Text(
+                'Profil Saya',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -329,26 +332,30 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildLogoutButton() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: OutlinedButton(
-        onPressed: _logout,
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-          foregroundColor: Colors.red,
-          side: const BorderSide(color: Colors.red, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.logout_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text(
-              "Keluar dari Akun",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      child: Semantics(
+        label: 'Keluar dari Akun',
+        button: true,
+        child: OutlinedButton(
+          onPressed: _logout,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red, width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.logout_rounded, color: Colors.red),
+              SizedBox(width: 8),
+              Text(
+                "Keluar dari Akun",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
         ),
       ),
     );

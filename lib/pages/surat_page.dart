@@ -334,8 +334,11 @@ class _SuratPageState extends State<SuratPage> {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+      child: Semantics(
+        label: 'Pengajuan $nama. $deskripsi',
+        button: true,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
         onTap: () {
           if (id == 0) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -433,8 +436,9 @@ class _SuratPageState extends State<SuratPage> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _getEmojiForSurat(String namaSurat) {
     final lower = namaSurat.toLowerCase();
@@ -462,7 +466,7 @@ class _SuratPageState extends State<SuratPage> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
@@ -472,29 +476,43 @@ class _SuratPageState extends State<SuratPage> {
         maxWidth: 800,
         child: Row(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white,
-                  size: 16,
+            Semantics(
+              label: 'Kembali',
+              button: true,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                behavior: HitTestBehavior.opaque,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Layanan Surat',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
+            const SizedBox(width: 8),
+            Semantics(
+              header: true,
+              child: const Text(
+                'Layanan Surat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
               ),
             ),
           ],

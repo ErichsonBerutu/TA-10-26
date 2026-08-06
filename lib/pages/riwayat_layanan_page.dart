@@ -24,7 +24,8 @@ import '../utils/responsive_layout.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class RiwayatLayananPage extends StatefulWidget {
-  const RiwayatLayananPage({super.key});
+  final int initialTabIndex;
+  const RiwayatLayananPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<RiwayatLayananPage> createState() => _RiwayatLayananPageState();
@@ -41,7 +42,11 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _pengajuanSvc.addListener(_onServiceUpdate);
     _pengaduanSvc.addListener(_onServiceUpdate);
 
@@ -138,54 +143,68 @@ class _RiwayatLayananPageState extends State<RiwayatLayananPage>
         maxWidth: 800,
         child: Row(
           children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 16,
+          Semantics(
+            label: 'Kembali',
+            button: true,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 8),
           const Icon(Icons.history_rounded, color: Colors.white, size: 22),
           const SizedBox(width: 8),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Riwayat Layanan',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    letterSpacing: -0.3,
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Riwayat Layanan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Daftar riwayat pengajuan surat & pengaduan Anda',
-                  style: TextStyle(
-                    color: Color(0xFFbfdbfe),
-                    fontSize: 11,
+                  SizedBox(height: 2),
+                  Text(
+                    'Daftar riwayat pengajuan surat & pengaduan Anda',
+                    style: TextStyle(
+                      color: Color(0xFFbfdbfe),
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── TAB BAR ────────────────────────────────────────────
 

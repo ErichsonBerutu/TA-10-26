@@ -72,12 +72,12 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF16a34a), Color(0xFF15803d)],
+                              colors: [Color(0xFF1e40af), Color(0xFF1e40af)],
                             ),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF16a34a).withOpacity(0.2),
+                                color: const Color(0xFF1e40af).withOpacity(0.2),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               )
@@ -196,41 +196,55 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF16a34a), Color(0xFF15803d)],
+          colors: [Color(0xFF1e40af), Color(0xFF2563eb)],
         ),
         boxShadow: [
           BoxShadow(
-              color: Color(0x4016a34a),
+              color: Color(0xFF1e40af),
               blurRadius: 12,
               offset: Offset(0, 2)),
         ],
       ),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+          Semantics(
+            label: 'Kembali ke halaman sebelumnya',
+            button: true,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 16),
+                  ),
+                ),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 16),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           const Icon(Icons.chat_bubble_outline_rounded,
               color: Colors.white, size: 18),
           const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Pesan Resmi Desa',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 17),
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: const Text(
+                'Pesan Resmi Desa',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17),
+              ),
             ),
           ),
         ],
@@ -408,21 +422,25 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
       ),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_rounded, size: 18),
-          label: const Text(
-            'Kembali',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF475569),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        height: 48,
+        child: Semantics(
+          label: 'Tutup preview dan kembali',
+          button: true,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            label: const Text(
+              'Kembali',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
-            elevation: 0,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1e40af),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
           ),
         ),
       ),

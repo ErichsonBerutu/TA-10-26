@@ -47,45 +47,50 @@ class AppBottomNav extends StatelessWidget {
               children: navItems.map((entry) {
                 final active = entry.item == current;
                 return Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTap(entry.item),
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          width: 44,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: active
-                                ? Colors.white.withOpacity(0.18)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                  child: Semantics(
+                    label: 'Navigasi ${entry.label}',
+                    button: true,
+                    selected: active,
+                    child: GestureDetector(
+                      onTap: () => onTap(entry.item),
+                      behavior: HitTestBehavior.opaque,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 44,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? Colors.white.withOpacity(0.18)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              entry.icon,
+                              color: active
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.45),
+                              size: 22,
+                            ),
                           ),
-                          child: Icon(
-                            entry.icon,
-                            color: active
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.45),
-                            size: 22,
+                          const SizedBox(height: 2),
+                          Text(
+                            entry.label,
+                            style: TextStyle(
+                              color: active
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.45),
+                              fontSize: 10,
+                              fontWeight: active
+                                  ? FontWeight.w800
+                                  : FontWeight.w500,
+                              letterSpacing: active ? 0.2 : 0,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          entry.label,
-                          style: TextStyle(
-                            color: active
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.45),
-                            fontSize: 10,
-                            fontWeight: active
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                            letterSpacing: active ? 0.2 : 0,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
